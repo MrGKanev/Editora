@@ -68,13 +68,29 @@ interface ToolbarAction {
   wrap: [string, string];
 }
 
-const toolbarActions: ToolbarAction[] = [
+// Primary actions shown directly in the floating toolbar
+const primaryActions: ToolbarAction[] = [
   { label: "Bold", icon: "B", wrap: ["**", "**"] },
   { label: "Italic", icon: "I", wrap: ["*", "*"] },
-  { label: "Code", icon: "<>", wrap: ["`", "`"] },
   { label: "Strikethrough", icon: "S", wrap: ["~~", "~~"] },
-  { label: "Link", icon: "Link", wrap: ["[", "](url)"] },
-  { label: "Heading", icon: "H", wrap: ["## ", ""] },
+  { label: "Code", icon: "<>", wrap: ["`", "`"] },
+  { label: "Link", icon: "\u{1F517}", wrap: ["[", "](url)"] },
+  { label: "Image", icon: "\u{1F5BC}", wrap: ["![", "](url)"] },
+];
+
+// Secondary actions in the "More" dropdown
+const moreActions: ToolbarAction[] = [
+  { label: "Heading 1", icon: "H1", wrap: ["# ", ""] },
+  { label: "Heading 2", icon: "H2", wrap: ["## ", ""] },
+  { label: "Heading 3", icon: "H3", wrap: ["### ", ""] },
+  { label: "Bullet List", icon: "\u2022 List", wrap: ["- ", ""] },
+  { label: "Numbered List", icon: "1. List", wrap: ["1. ", ""] },
+  { label: "Blockquote", icon: "\u201C Quote", wrap: ["> ", ""] },
+  { label: "Code Block", icon: "{ } Block", wrap: ["```\n", "\n```"] },
+  { label: "Horizontal Rule", icon: "\u2014 Rule", wrap: ["\n---\n", ""] },
+  { label: "Highlight", icon: "Highlight", wrap: ["<mark>", "</mark>"] },
+  { label: "Superscript", icon: "x\u00B2", wrap: ["<sup>", "</sup>"] },
+  { label: "Subscript", icon: "x\u2082", wrap: ["<sub>", "</sub>"] },
 ];
 
 function FloatingToolbar({
@@ -84,15 +100,16 @@ function FloatingToolbar({
   pos: { x: number; y: number } | null;
   onAction: (action: ToolbarAction) => void;
 }) {
+  const [showMore, setShowMore] = React.useState(false);
+
   if (!pos) return null;
 
   return (
     <div
-      className="fixed z-50 flex items-center gap-0.5 bg-editor-surface border rounded-lg shadow-xl px-1 py-1
-                 animate-in fade-in"
+      className="fixed z-50 flex items-center gap-0.5 bg-editor-surface border rounded-lg shadow-xl px-1 py-1"
       style={{ left: pos.x, top: pos.y }}
     >
-      {toolbarActions.map((action) => (
+      {primaryActions.map((action) => (
         <button
           key={action.label}
           title={action.label}
@@ -100,7 +117,7 @@ function FloatingToolbar({
             e.preventDefault();
             onAction(action);
           }}
-          className={`px-2 py-1 text-xs rounded hover:bg-editor-border/60 text-editor-text transition-colors
+          className={`px-2 py-1 text-xs rounded hover:bg-editor-accent/20 text-editor-text transition-colors
             ${action.label === "Bold" ? "font-bold" : ""}
             ${action.label === "Italic" ? "italic" : ""}
             ${action.label === "Strikethrough" ? "line-through" : ""}
@@ -110,6 +127,42 @@ function FloatingToolbar({
           {action.icon}
         </button>
       ))}
+
+      {/* Divider */}
+      <div className="w-px h-4 bg-editor-border mx-0.5" />
+
+      {/* More button */}
+      <div className="relative">
+        <button
+          title="More formatting"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setShowMore(!showMore);
+          }}
+          className="px-2 py-1 text-xs rounded hover:bg-editor-accent/20 text-editor-muted transition-colors"
+        >
+          ...
+        </button>
+
+        {showMore && (
+          <div className="absolute bottom-full right-0 mb-1 bg-editor-surface border rounded-lg shadow-xl py-1 min-w-[150px]">
+            {moreActions.map((action) => (
+              <button
+                key={action.label}
+                title={action.label}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  setShowMore(false);
+                  onAction(action);
+                }}
+                className="w-full text-left px-3 py-1.5 text-xs text-editor-text hover:bg-editor-accent/20 transition-colors"
+              >
+                {action.icon}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

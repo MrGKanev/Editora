@@ -4,6 +4,7 @@ import ProjectSelector from "./components/project/ProjectSelector";
 import Sidebar from "./components/layout/Sidebar";
 import StatusBar from "./components/layout/StatusBar";
 import EditorArea from "./components/editor/EditorArea";
+import TerminalPanel from "./components/layout/TerminalPanel";
 
 function TitleBar() {
   return (
@@ -35,10 +36,11 @@ export default function App() {
   return (
     <div className="flex flex-col h-screen">
       <TitleBar />
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden min-h-0">
         <Sidebar />
         <EditorArea />
       </div>
+      <TerminalPanel />
       <StatusBar />
     </div>
   );

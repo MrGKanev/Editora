@@ -6,7 +6,7 @@ import { useUIStore } from "../../store/ui-store";
 export default function StatusBar() {
   const project = useProjectStore((s) => s.currentProject);
   const { currentFile, isDirty, isSaving } = useEditorStore();
-  const { devServer, gitStatus } = useUIStore();
+  const { devServer, gitStatus, toggleTerminal, showTerminal } = useUIStore();
   const setProject = useProjectStore((s) => s.setProject);
 
   return (
@@ -46,6 +46,17 @@ export default function StatusBar() {
           </span>
         )}
 
+        {/* Terminal toggle */}
+        <button
+          onClick={toggleTerminal}
+          className={`flex items-center gap-1 transition-colors hover:text-editor-text ${
+            showTerminal ? "text-editor-accent" : ""
+          }`}
+          title="Toggle terminal"
+        >
+          &gt;_ Terminal
+        </button>
+
         {/* Dev server status */}
         <span
           className={`flex items-center gap-1 ${
@@ -68,7 +79,7 @@ export default function StatusBar() {
             }`}
           />
           {devServer.status === "running"
-            ? `Dev server: ${devServer.url}`
+            ? `Server: ${devServer.url}`
             : `Server: ${devServer.status}`}
         </span>
       </div>

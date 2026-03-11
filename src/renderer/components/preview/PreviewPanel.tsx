@@ -4,7 +4,7 @@ import { useUIStore } from "../../store/ui-store";
 
 export default function PreviewPanel() {
   const project = useProjectStore((s) => s.currentProject);
-  const { devServer, setDevServer, serverLogs, addServerLog, clearServerLogs } =
+  const { devServer, setDevServer, addServerLog, clearServerLogs, toggleTerminal, showTerminal } =
     useUIStore();
 
   const handleStart = async () => {
@@ -13,7 +13,7 @@ export default function PreviewPanel() {
     setDevServer({ status: "starting" });
 
     // Set up log listener
-    const cleanup = window.editora.onServerLog((log) => {
+    window.editora.onServerLog((log) => {
       addServerLog(log);
     });
 
@@ -57,13 +57,20 @@ export default function PreviewPanel() {
       {/* Status */}
       {devServer.status === "running" && devServer.url && (
         <div className="space-y-2">
-          <p className="text-xs text-editor-success">
-            Running at {devServer.url}
+          <p className="text-xs text-editor-success flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-editor-success animate-pulse" />
+            Running at{" "}
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                window.open(devServer.url!, "_blank");
+              }}
+              className="text-editor-accent underline hover:text-editor-accent/80"
+            >
+              {devServer.url}
+            </a>
           </p>
-          <webview
-            src={devServer.url}
-            className="w-full h-80 rounded border bg-white"
-          />
         </div>
       )}
 
@@ -71,19 +78,14 @@ export default function PreviewPanel() {
         <p className="text-xs text-editor-danger">{devServer.error}</p>
       )}
 
-      {/* Logs */}
-      {serverLogs.length > 0 && (
-        <div>
-          <p className="text-xs text-editor-muted mb-1">Console Output</p>
-          <div className="bg-editor-bg rounded border p-2 max-h-48 overflow-y-auto font-mono text-xs">
-            {serverLogs.map((log, i) => (
-              <div key={i} className="whitespace-pre-wrap break-all">
-                {log}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Toggle terminal */}
+      <button
+        onClick={toggleTerminal}
+        className="w-full px-3 py-1.5 text-sm text-editor-muted
+                   rounded border hover:bg-editor-border/30 transition-colors"
+      >
+        {showTerminal ? "Hide Terminal" : "Show Terminal"}
+      </button>
     </div>
   );
 }

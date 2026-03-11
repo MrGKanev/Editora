@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, protocol, net } from "electron";
+import { app, BrowserWindow, Menu, protocol, net, shell } from "electron";
 import path from "node:path";
 import { registerProjectHandlers } from "./ipc/project";
 import { registerContentHandlers } from "./ipc/content";
@@ -57,6 +57,25 @@ const createWindow = () => {
   if (process.env.NODE_ENV === "development" || MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.webContents.openDevTools();
   }
+
+  // Prevent navigation — open external links in browser instead
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    // Allow dev server reload
+    if (MAIN_WINDOW_VITE_DEV_SERVER_URL && url.startsWith(MAIN_WINDOW_VITE_DEV_SERVER_URL)) {
+      return;
+    }
+    event.preventDefault();
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      shell.openExternal(url);
+    }
+  });
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      shell.openExternal(url);
+    }
+    return { action: "deny" };
+  });
 
   mainWindow.on("closed", () => {
     mainWindow = null;

@@ -6,6 +6,8 @@ export interface Project {
   lastOpened: number;
   isGitRepo: boolean;
   gitRemote?: string;
+  ssgId?: string;
+  ssgName?: string;
 }
 
 // ===== Collections =====

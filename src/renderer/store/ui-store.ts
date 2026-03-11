@@ -7,6 +7,8 @@ interface UIState {
   activePanel: Panel;
   sidebarWidth: number;
   showPreview: boolean;
+  showTerminal: boolean;
+  terminalHeight: number;
   devServer: DevServerState;
   gitStatus: GitStatus | null;
   serverLogs: string[];
@@ -14,6 +16,8 @@ interface UIState {
   setActivePanel: (panel: Panel) => void;
   setSidebarWidth: (width: number) => void;
   togglePreview: () => void;
+  toggleTerminal: () => void;
+  setTerminalHeight: (height: number) => void;
   setDevServer: (state: DevServerState) => void;
   setGitStatus: (status: GitStatus | null) => void;
   addServerLog: (log: string) => void;
@@ -24,6 +28,8 @@ export const useUIStore = create<UIState>((set) => ({
   activePanel: "collections",
   sidebarWidth: 260,
   showPreview: true,
+  showTerminal: false,
+  terminalHeight: 200,
   devServer: { status: "stopped" },
   gitStatus: null,
   serverLogs: [],
@@ -31,9 +37,11 @@ export const useUIStore = create<UIState>((set) => ({
   setActivePanel: (activePanel) => set({ activePanel }),
   setSidebarWidth: (sidebarWidth) => set({ sidebarWidth }),
   togglePreview: () => set((s) => ({ showPreview: !s.showPreview })),
+  toggleTerminal: () => set((s) => ({ showTerminal: !s.showTerminal })),
+  setTerminalHeight: (terminalHeight) => set({ terminalHeight }),
   setDevServer: (devServer) => set({ devServer }),
   setGitStatus: (gitStatus) => set({ gitStatus }),
   addServerLog: (log) =>
-    set((s) => ({ serverLogs: [...s.serverLogs.slice(-200), log] })),
+    set((s) => ({ serverLogs: [...s.serverLogs.slice(-500), log] })),
   clearServerLogs: () => set({ serverLogs: [] }),
 }));
