@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useProjectStore } from "../../store/project-store";
 import { useUIStore } from "../../store/ui-store";
 
@@ -7,22 +7,26 @@ export default function GitPanel() {
   const { gitStatus, setGitStatus } = useUIStore();
   const [commitMessage, setCommitMessage] = useState("");
   const [isWorking, setIsWorking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const projectPathRef = useRef(project?.path);
+  projectPathRef.current = project?.path;
 
-  const refreshStatus = async () => {
-    if (!project) return;
+  const refreshStatus = useCallback(async () => {
+    const currentPath = projectPathRef.current;
+    if (!currentPath) return;
     try {
-      const status = await window.editora.gitStatus(project.path);
+      const status = await window.editora.gitStatus(currentPath);
       setGitStatus(status);
     } catch {
       setGitStatus(null);
     }
-  };
+  }, [setGitStatus]);
 
   useEffect(() => {
     refreshStatus();
     const interval = setInterval(refreshStatus, 10000);
     return () => clearInterval(interval);
-  }, [project]);
+  }, [project?.path, refreshStatus]);
 
   if (!gitStatus?.isRepo) {
     return (
@@ -35,12 +39,13 @@ export default function GitPanel() {
   const handleCommit = async () => {
     if (!project || !commitMessage.trim()) return;
     setIsWorking(true);
+    setError(null);
     try {
       await window.editora.gitCommit(project.path, commitMessage);
       setCommitMessage("");
       refreshStatus();
     } catch (err) {
-      console.error("Commit failed:", err);
+      setError(`Commit failed: ${(err as Error).message}`);
     } finally {
       setIsWorking(false);
     }
@@ -49,11 +54,12 @@ export default function GitPanel() {
   const handlePush = async () => {
     if (!project) return;
     setIsWorking(true);
+    setError(null);
     try {
       await window.editora.gitPush(project.path);
       refreshStatus();
     } catch (err) {
-      console.error("Push failed:", err);
+      setError(`Push failed: ${(err as Error).message}`);
     } finally {
       setIsWorking(false);
     }
@@ -62,11 +68,12 @@ export default function GitPanel() {
   const handlePull = async () => {
     if (!project) return;
     setIsWorking(true);
+    setError(null);
     try {
       await window.editora.gitPull(project.path);
       refreshStatus();
     } catch (err) {
-      console.error("Pull failed:", err);
+      setError(`Pull failed: ${(err as Error).message}`);
     } finally {
       setIsWorking(false);
     }
@@ -80,6 +87,19 @@ export default function GitPanel() {
 
   return (
     <div className="p-3 space-y-3">
+      {/* Error banner */}
+      {error && (
+        <div className="px-2 py-1.5 text-xs bg-editor-danger/10 text-editor-danger rounded border border-editor-danger/20">
+          {error}
+          <button
+            onClick={() => setError(null)}
+            className="ml-2 opacity-60 hover:opacity-100"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
       {/* Branch info */}
       <div className="flex items-center justify-between text-sm">
         <span className="font-medium">{gitStatus.branch}</span>

@@ -48,6 +48,7 @@
 
 /* Prose overrides for dark theme */
 .prose-invert {
+  background-color: var(--color-editor-bg);
   --tw-prose-body: #cdd6f4;
   --tw-prose-headings: #cdd6f4;
   --tw-prose-links: #89b4fa;

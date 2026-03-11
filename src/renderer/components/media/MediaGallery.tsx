@@ -14,7 +14,7 @@ export default function MediaGallery() {
     if (!project) return;
     setIsLoading(true);
     try {
-      const files = await window.editora.listMedia(project.path);
+      const files = await window.editora.listMedia(project.path, project.ssgId);
       setMediaFiles(files);
     } catch (err) {
       console.error("Failed to load media:", err);

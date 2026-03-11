@@ -26,6 +26,17 @@ export default function EditorArea() {
     return () => window.removeEventListener("keydown", handler);
   }, [save]);
 
+  // Warn before closing with unsaved changes
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
   if (!currentFile) {
     return (
       <div className="flex-1 flex items-center justify-center text-editor-muted">

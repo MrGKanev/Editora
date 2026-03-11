@@ -114,6 +114,39 @@ describe("MediaService", () => {
       expect(files[0].size).toBe(1000);
     });
 
+    it("should find images in content directories alongside markdown", async () => {
+      const contentDir = path.join(tmpDir, "content", "blog");
+      await fs.mkdir(contentDir, { recursive: true });
+      await fs.writeFile(path.join(contentDir, "post.md"), "# Hello");
+      await fs.writeFile(path.join(contentDir, "hero.jpg"), "fake-jpg");
+      await fs.writeFile(path.join(contentDir, "diagram.png"), "fake-png");
+
+      const files = await service.listMedia(tmpDir);
+      const names = files.map((f) => f.name).sort();
+      expect(names).toContain("diagram.png");
+      expect(names).toContain("hero.jpg");
+    });
+
+    it("should find images in custom SSG content dirs", async () => {
+      const customDir = path.join(tmpDir, "my-pages");
+      await fs.mkdir(customDir, { recursive: true });
+      await fs.writeFile(path.join(customDir, "banner.webp"), "fake-webp");
+
+      const files = await service.listMedia(tmpDir, ["my-pages"]);
+      expect(files.length).toBe(1);
+      expect(files[0].name).toBe("banner.webp");
+    });
+
+    it("should not duplicate images when same dir is scanned twice", async () => {
+      const publicDir = path.join(tmpDir, "public");
+      await fs.mkdir(publicDir, { recursive: true });
+      await fs.writeFile(path.join(publicDir, "logo.png"), "data");
+
+      // Pass "public" as a content dir too — should not duplicate
+      const files = await service.listMedia(tmpDir, ["public"]);
+      expect(files.length).toBe(1);
+    });
+
     it("should handle case-insensitive extensions", async () => {
       const publicDir = path.join(tmpDir, "public");
       await fs.mkdir(publicDir, { recursive: true });

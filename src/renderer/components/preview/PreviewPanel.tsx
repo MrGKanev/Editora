@@ -1,20 +1,21 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useProjectStore } from "../../store/project-store";
 import { useUIStore } from "../../store/ui-store";
-
 
 export default function PreviewPanel() {
   const project = useProjectStore((s) => s.currentProject);
   const { devServer, setDevServer, addServerLog, clearServerLogs, toggleTerminal, showTerminal } =
     useUIStore();
+  const unsubRef = useRef<(() => void) | null>(null);
 
   const handleStart = async () => {
     if (!project) return;
     clearServerLogs();
     setDevServer({ status: "starting" });
 
-    // Set up log listener
-    window.editora.onServerLog((log) => {
+    // Clean up previous listener before adding a new one
+    unsubRef.current?.();
+    unsubRef.current = window.editora.onServerLog((log) => {
       addServerLog(log);
     });
 
@@ -29,6 +30,9 @@ export default function PreviewPanel() {
   const handleStop = async () => {
     await window.editora.serverStop();
     setDevServer({ status: "stopped" });
+    // Clean up listener when server stops
+    unsubRef.current?.();
+    unsubRef.current = null;
   };
 
   return (

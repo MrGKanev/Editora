@@ -6,6 +6,7 @@ type Panel = "collections" | "media" | "git" | "preview";
 interface UIState {
   activePanel: Panel;
   sidebarWidth: number;
+  showSidebar: boolean;
   showPreview: boolean;
   showTerminal: boolean;
   terminalHeight: number;
@@ -15,6 +16,7 @@ interface UIState {
 
   setActivePanel: (panel: Panel) => void;
   setSidebarWidth: (width: number) => void;
+  toggleSidebar: () => void;
   togglePreview: () => void;
   toggleTerminal: () => void;
   setTerminalHeight: (height: number) => void;
@@ -27,6 +29,7 @@ interface UIState {
 export const useUIStore = create<UIState>((set) => ({
   activePanel: "collections",
   sidebarWidth: 260,
+  showSidebar: true,
   showPreview: true,
   showTerminal: false,
   terminalHeight: 200,
@@ -36,6 +39,7 @@ export const useUIStore = create<UIState>((set) => ({
 
   setActivePanel: (activePanel) => set({ activePanel }),
   setSidebarWidth: (sidebarWidth) => set({ sidebarWidth }),
+  toggleSidebar: () => set((s) => ({ showSidebar: !s.showSidebar })),
   togglePreview: () => set((s) => ({ showPreview: !s.showPreview })),
   toggleTerminal: () => set((s) => ({ showTerminal: !s.showTerminal })),
   setTerminalHeight: (terminalHeight) => set({ terminalHeight }),

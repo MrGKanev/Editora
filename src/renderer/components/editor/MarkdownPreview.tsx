@@ -1,11 +1,11 @@
-import React, { useMemo, useCallback } from "react";
+import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
+import DOMPurify from "dompurify";
 import { useEditorStore } from "../../store/editor-store";
-import { isHtmlHeavy } from "../../utils/markdown";
 
-const proseClasses = `p-6 prose prose-invert prose-sm max-w-none
+const proseClasses = `p-6 prose prose-invert prose-sm max-w-none bg-editor-bg
   prose-headings:font-semibold
   prose-a:text-editor-accent prose-a:no-underline hover:prose-a:underline
   prose-code:text-pink-300 prose-code:bg-editor-surface prose-code:px-1 prose-code:rounded prose-code:text-xs
@@ -23,35 +23,27 @@ function handleLinkClick(e: React.MouseEvent<HTMLElement>) {
 
   e.preventDefault();
 
-  // External links — open in browser (handled by main process will-navigate)
   if (href.startsWith("http://") || href.startsWith("https://")) {
     window.open(href, "_blank");
     return;
   }
-
-  // Local relative links — could be links to other content files
-  // For now just prevent navigation
 }
 
 export default function MarkdownPreview() {
   const editorContent = useEditorStore((s) => s.editorContent);
 
-  const htmlHeavy = useMemo(() => isHtmlHeavy(editorContent), [editorContent]);
-
-  if (htmlHeavy) {
-    return (
-      <div
-        className={proseClasses}
-        onClick={handleLinkClick}
-        dangerouslySetInnerHTML={{ __html: editorContent }}
-      />
-    );
-  }
+  // Sanitize content to prevent XSS, then let ReactMarkdown handle
+  // both Markdown syntax and embedded HTML (via rehype-raw)
+  const sanitized = DOMPurify.sanitize(editorContent, {
+    // Allow all safe HTML tags that might appear in content
+    ADD_TAGS: ["iframe"],
+    ADD_ATTR: ["target", "rel"],
+  });
 
   return (
     <div className={proseClasses} onClick={handleLinkClick}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-        {editorContent}
+        {sanitized}
       </ReactMarkdown>
     </div>
   );

@@ -38,11 +38,12 @@ export default function TerminalPanel() {
   }, [serverLogs]);
 
   // Auto-show terminal when logs start coming in
+  const hasLogs = serverLogs.length > 0;
   useEffect(() => {
-    if (serverLogs.length > 0 && !showTerminal) {
+    if (hasLogs && !showTerminal) {
       toggleTerminal();
     }
-  }, [serverLogs.length > 0]);
+  }, [hasLogs]);
 
   if (!showTerminal) return null;
 

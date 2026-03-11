@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, protocol, net, shell } from "electron";
+import { app, BrowserWindow, Menu, protocol, net, shell, ipcMain } from "electron";
 import path from "node:path";
 import { registerProjectHandlers } from "./ipc/project";
 import { registerContentHandlers } from "./ipc/content";
@@ -89,6 +89,10 @@ const registerAllHandlers = () => {
   registerMediaHandlers();
   registerGitHandlers();
   registerServerHandlers();
+
+  ipcMain.handle("shell:show-item-in-folder", (_event, filePath: string) => {
+    shell.showItemInFolder(filePath);
+  });
 };
 
 app.whenReady().then(() => {

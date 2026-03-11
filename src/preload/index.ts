@@ -30,8 +30,8 @@ const api = {
     ipcRenderer.invoke(IPC.CONTENT_DELETE, filePath),
 
   // Media
-  listMedia: (projectPath: string) =>
-    ipcRenderer.invoke(IPC.MEDIA_LIST, projectPath),
+  listMedia: (projectPath: string, ssgId?: string) =>
+    ipcRenderer.invoke(IPC.MEDIA_LIST, projectPath, ssgId),
   uploadMedia: (projectPath: string, filePaths: string[]) =>
     ipcRenderer.invoke(IPC.MEDIA_UPLOAD, projectPath, filePaths),
   deleteMedia: (filePath: string) =>
@@ -64,6 +64,21 @@ const api = {
     ipcRenderer.on(IPC.SERVER_LOG, handler);
     return () => ipcRenderer.removeListener(IPC.SERVER_LOG, handler);
   },
+
+  // Menu events
+  onMenuEvent: (
+    channel: string,
+    callback: (...args: unknown[]) => void
+  ) => {
+    const handler = (_event: Electron.IpcRendererEvent, ...args: unknown[]) =>
+      callback(...args);
+    ipcRenderer.on(channel, handler);
+    return () => ipcRenderer.removeListener(channel, handler);
+  },
+
+  // Shell
+  showItemInFolder: (filePath: string) =>
+    ipcRenderer.invoke("shell:show-item-in-folder", filePath),
 };
 
 contextBridge.exposeInMainWorld("editora", api);

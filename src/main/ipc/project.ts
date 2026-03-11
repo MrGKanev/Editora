@@ -4,6 +4,16 @@ import { ProjectManager } from "../services/project-manager";
 
 const projectManager = new ProjectManager();
 
+const GIT_URL_PATTERN = /^(https?:\/\/[^\s]+\.git|https?:\/\/(github|gitlab|bitbucket)\.[^\s]+|git@[^\s]+:[^\s]+\.git)$/i;
+
+function isValidGitUrl(url: string): boolean {
+  // Allow common git URL formats
+  if (GIT_URL_PATTERN.test(url)) return true;
+  // Also allow simple https URLs to known hosts without .git suffix
+  if (/^https?:\/\/(github\.com|gitlab\.com|bitbucket\.org)\/[\w\-./]+$/i.test(url)) return true;
+  return false;
+}
+
 export function registerProjectHandlers() {
   ipcMain.handle(IPC.PROJECT_OPEN, async () => {
     const win = BrowserWindow.getFocusedWindow();
@@ -29,6 +39,9 @@ export function registerProjectHandlers() {
   ipcMain.handle(
     IPC.PROJECT_CLONE,
     async (_event, url: string, dest: string) => {
+      if (!isValidGitUrl(url)) {
+        return { error: "Invalid Git URL. Please provide a valid HTTPS or SSH repository URL." };
+      }
       try {
         const project = await projectManager.cloneProject(url, dest);
         return project;

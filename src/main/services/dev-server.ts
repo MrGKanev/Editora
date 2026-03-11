@@ -1,6 +1,6 @@
 import { ChildProcess, spawn } from "node:child_process";
 import { DevServerState } from "../../shared/types";
-import { SSG_DEFINITIONS, SSGDefinition } from "../../shared/ssg";
+import { SSG_DEFINITIONS } from "../../shared/ssg";
 
 export class DevServerService {
   private process: ChildProcess | null = null;
@@ -19,7 +19,6 @@ export class DevServerService {
     const devCommand = ssg?.devCommand;
 
     if (!devCommand || devCommand.length === 0) {
-      // Try to detect from package.json scripts
       this.state = { status: "error", error: "No dev server command configured for this project type." };
       onLog("No dev command found. Try running your dev server manually.");
       return this.state;
@@ -30,58 +29,70 @@ export class DevServerService {
     this.state = { status: "starting" };
 
     return new Promise((resolve) => {
-      const isWin = process.platform === "win32";
-      const cmd = isWin ? "npx.cmd" : "npx";
+      try {
+        const isWin = process.platform === "win32";
+        const cmd = isWin ? "npx.cmd" : "npx";
 
-      // For non-npm tools (Hugo, Jekyll), use the command directly
-      const useNpx = ssg ? ssg.packages.length > 0 : true;
-      const finalCmd = useNpx ? cmd : devCommand[0];
-      const finalArgs = useNpx ? devCommand : devCommand.slice(1);
+        // For non-npm tools (Hugo, Jekyll), use the command directly
+        const useNpx = ssg ? ssg.packages.length > 0 : true;
+        const finalCmd = useNpx ? cmd : devCommand[0];
+        const finalArgs = useNpx ? devCommand : devCommand.slice(1);
 
-      this.process = spawn(finalCmd, finalArgs, {
-        cwd: projectPath,
-        shell: true,
-        env: { ...process.env, FORCE_COLOR: "0" },
-      });
+        this.process = spawn(finalCmd, finalArgs, {
+          cwd: projectPath,
+          shell: true,
+          env: { ...process.env, FORCE_COLOR: "0" },
+        });
 
-      this.process.stdout?.on("data", (data: Buffer) => {
-        const text = data.toString();
-        onLog(text);
+        this.process.stdout?.on("data", (data: Buffer) => {
+          const text = data.toString();
+          onLog(text);
 
-        const urlMatch = text.match(urlPattern);
-        if (urlMatch) {
-          const port = parseInt(urlMatch[1], 10);
-          this.state = {
-            status: "running",
-            url: `http://localhost:${port}`,
-            port,
-          };
+          const urlMatch = text.match(urlPattern);
+          if (urlMatch) {
+            const port = parseInt(urlMatch[1], 10);
+            this.state = {
+              status: "running",
+              url: `http://localhost:${port}`,
+              port,
+            };
+            resolve(this.state);
+          }
+        });
+
+        this.process.stderr?.on("data", (data: Buffer) => {
+          onLog(data.toString());
+        });
+
+        this.process.on("error", (err) => {
+          this.state = { status: "error", error: err.message };
+          onLog(`Error: ${err.message}`);
+          this.process = null;
           resolve(this.state);
-        }
-      });
+        });
 
-      this.process.stderr?.on("data", (data: Buffer) => {
-        onLog(data.toString());
-      });
+        this.process.on("close", (code) => {
+          this.state = { status: "stopped" };
+          onLog(`Server exited with code ${code}`);
+          this.process = null;
+        });
 
-      this.process.on("error", (err) => {
-        this.state = { status: "error", error: err.message };
-        onLog(`Error: ${err.message}`);
-        resolve(this.state);
-      });
-
-      this.process.on("close", (code) => {
-        this.state = { status: "stopped" };
-        onLog(`Server exited with code ${code}`);
+        // Timeout: kill process if it hasn't started in 30 seconds
+        setTimeout(() => {
+          if (this.state.status === "starting") {
+            this.state = { status: "error", error: "Server start timeout (30s)" };
+            onLog("Server failed to start within 30 seconds.");
+            this.process?.kill("SIGTERM");
+            this.process = null;
+            resolve(this.state);
+          }
+        }, 30000);
+      } catch (err) {
+        this.state = { status: "error", error: (err as Error).message };
+        onLog(`Failed to start server: ${(err as Error).message}`);
         this.process = null;
-      });
-
-      setTimeout(() => {
-        if (this.state.status === "starting") {
-          this.state = { status: "error", error: "Server start timeout" };
-          resolve(this.state);
-        }
-      }, 30000);
+        resolve(this.state);
+      }
     });
   }
 
