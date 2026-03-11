@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useProjectStore } from "./store/project-store";
 import { useEditorStore } from "./store/editor-store";
 import { useUIStore } from "./store/ui-store";
@@ -8,6 +8,7 @@ import Sidebar from "./components/layout/Sidebar";
 import StatusBar from "./components/layout/StatusBar";
 import EditorArea from "./components/editor/EditorArea";
 import TerminalPanel from "./components/layout/TerminalPanel";
+import ShortcutsPanel from "./components/layout/ShortcutsPanel";
 
 function TitleBar() {
   return (
@@ -121,11 +122,81 @@ function useMenuEvents() {
   }, [save, currentFile, editorContent, frontmatter, openProjectPath, togglePreview, toggleSidebar, toggleTerminal]);
 }
 
+function ExitFocusButton() {
+  const toggleFocusMode = useUIStore((s) => s.toggleFocusMode);
+  const [visible, setVisible] = useState(false);
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleMouseMove = useCallback(() => {
+    setVisible(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setVisible(false), 2000);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [handleMouseMove]);
+
+  return (
+    <button
+      onClick={toggleFocusMode}
+      className={`fixed bottom-4 right-4 z-50 px-3 py-1.5 text-xs rounded-lg
+        bg-editor-surface border text-editor-muted hover:text-editor-text
+        shadow-lg transition-opacity duration-300
+        ${visible ? "opacity-100" : "opacity-0"}`}
+    >
+      Exit Focus (Ctrl+Shift+F)
+    </button>
+  );
+}
+
 export default function App() {
   const project = useProjectStore((s) => s.currentProject);
   const showSidebar = useUIStore((s) => s.showSidebar);
+  const focusMode = useUIStore((s) => s.focusMode);
+  const theme = useUIStore((s) => s.theme);
+  const toggleFocusMode = useUIStore((s) => s.toggleFocusMode);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   useMenuEvents();
+
+  // Apply theme class to root element
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "light") {
+      root.classList.add("theme-light");
+    } else {
+      root.classList.remove("theme-light");
+    }
+  }, [theme]);
+
+  // Keyboard shortcut: Cmd/Ctrl+Shift+F to toggle focus mode
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "F") {
+        e.preventDefault();
+        toggleFocusMode();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [toggleFocusMode]);
+
+  // Keyboard shortcut: Cmd/Ctrl+/ to toggle shortcuts panel
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "/") {
+        e.preventDefault();
+        setShowShortcuts((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   if (!project) {
     return (
@@ -140,13 +211,15 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen">
-      <TitleBar />
+      {!focusMode && <TitleBar />}
       <div className="flex flex-1 overflow-hidden min-h-0">
-        {showSidebar && <Sidebar />}
+        {showSidebar && !focusMode && <Sidebar />}
         <EditorArea />
       </div>
-      <TerminalPanel />
-      <StatusBar />
+      {!focusMode && <TerminalPanel />}
+      {!focusMode && <StatusBar />}
+      {focusMode && <ExitFocusButton />}
+      <ShortcutsPanel isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
     </div>
   );
 }

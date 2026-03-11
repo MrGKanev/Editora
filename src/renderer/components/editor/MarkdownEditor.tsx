@@ -8,10 +8,17 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 import { search, openSearchPanel, searchKeymap } from "@codemirror/search";
 import { keymap } from "@codemirror/view";
+import {
+  autocompletion,
+  CompletionContext,
+  type CompletionResult,
+} from "@codemirror/autocomplete";
 import { useEditorStore } from "../../store/editor-store";
 import { useProjectStore } from "../../store/project-store";
+import { useUIStore } from "../../store/ui-store";
 import TableEditorModal, { parseMarkdownTable } from "./TableEditorModal";
 import ImageUploadDialog from "../media/ImageUploadDialog";
+import { builtinSnippets } from "../../utils/snippets";
 
 const editorTheme = EditorView.theme({
   "&": {
@@ -97,6 +104,120 @@ const highlightStyle = HighlightStyle.define([
   { tag: tags.processingInstruction, color: "#6c7086" },
   { tag: tags.quote, color: "#a6adc8", fontStyle: "italic" },
 ]);
+
+// Catppuccin Latte (light) editor theme
+const editorThemeLight = EditorView.theme({
+  "&": {
+    backgroundColor: "#eff1f5",
+    color: "#4c4f69",
+  },
+  ".cm-content": {
+    caretColor: "#1e66f5",
+    fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+    fontSize: "13px",
+    lineHeight: "1.7",
+    padding: "16px",
+  },
+  ".cm-cursor": {
+    borderLeftColor: "#1e66f5",
+  },
+  ".cm-selectionBackground": {
+    backgroundColor: "rgba(30, 102, 245, 0.15) !important",
+  },
+  ".cm-activeLine": {
+    backgroundColor: "transparent",
+    borderLeft: "2px solid #1e66f5",
+  },
+  ".cm-gutters": {
+    backgroundColor: "#eff1f5",
+    color: "#9ca0b0",
+    border: "none",
+  },
+  ".cm-activeLineGutter": {
+    backgroundColor: "transparent",
+    color: "#1e66f5",
+  },
+  ".cm-panels": {
+    backgroundColor: "#e6e9ef",
+    borderBottom: "1px solid #ccd0da",
+  },
+  ".cm-search": {
+    fontSize: "13px",
+  },
+  ".cm-search label": {
+    color: "#4c4f69",
+  },
+  ".cm-search input, .cm-search button": {
+    backgroundColor: "#eff1f5",
+    color: "#4c4f69",
+    border: "1px solid #ccd0da",
+    borderRadius: "4px",
+    padding: "2px 6px",
+  },
+  ".cm-search button": {
+    cursor: "pointer",
+  },
+  ".cm-search button:hover": {
+    backgroundColor: "#ccd0da",
+  },
+  ".cm-searchMatch": {
+    backgroundColor: "rgba(223, 142, 29, 0.25)",
+    borderRadius: "2px",
+  },
+  ".cm-searchMatch-selected": {
+    backgroundColor: "rgba(30, 102, 245, 0.35)",
+  },
+});
+
+const highlightStyleLight = HighlightStyle.define([
+  { tag: tags.heading1, color: "#1e66f5", fontWeight: "bold", fontSize: "1.4em" },
+  { tag: tags.heading2, color: "#1e66f5", fontWeight: "bold", fontSize: "1.2em" },
+  { tag: tags.heading3, color: "#1e66f5", fontWeight: "bold", fontSize: "1.1em" },
+  { tag: tags.heading, color: "#1e66f5", fontWeight: "bold" },
+  { tag: tags.strong, color: "#4c4f69", fontWeight: "bold" },
+  { tag: tags.emphasis, color: "#4c4f69", fontStyle: "italic" },
+  { tag: tags.link, color: "#1e66f5", textDecoration: "underline" },
+  { tag: tags.url, color: "#1e66f5" },
+  { tag: tags.monospace, color: "#8839ef" },
+  { tag: tags.angleBracket, color: "#9ca0b0" },
+  { tag: tags.tagName, color: "#9ca0b0" },
+  { tag: tags.attributeName, color: "#9ca0b0" },
+  { tag: tags.attributeValue, color: "#9ca0b0" },
+  { tag: tags.comment, color: "#9ca0b0", fontStyle: "italic" },
+  { tag: tags.string, color: "#40a02b" },
+  { tag: tags.meta, color: "#df8e1d" },
+  { tag: tags.processingInstruction, color: "#9ca0b0" },
+  { tag: tags.quote, color: "#6c6f85", fontStyle: "italic" },
+]);
+
+// Snippet completion source: activates when typing "/" and shows matching snippets
+function snippetCompletionSource(context: CompletionContext): CompletionResult | null {
+  const word = context.matchBefore(/\/\w*/);
+  if (!word) return null;
+  // Only activate at the start of a word (after whitespace or start of line)
+  if (word.from > 0) {
+    const charBefore = context.state.sliceDoc(word.from - 1, word.from);
+    if (charBefore && !/\s/.test(charBefore)) return null;
+  }
+
+  return {
+    from: word.from,
+    options: builtinSnippets.map((snippet) => ({
+      label: snippet.trigger,
+      detail: snippet.label,
+      apply: (view: EditorView, _completion: unknown, from: number, to: number) => {
+        const placeholderIndex = snippet.template.indexOf("$1");
+        const text = snippet.template.replace(/\$1/g, "");
+        view.dispatch({
+          changes: { from, to, insert: text },
+          selection: {
+            anchor: from + (placeholderIndex >= 0 ? placeholderIndex : text.length),
+          },
+        });
+      },
+    })),
+  };
+}
 
 interface ToolbarAction {
   label: string;
@@ -208,6 +329,7 @@ const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "svg", "webp", "a
 export default function MarkdownEditor() {
   const { editorContent, setEditorContent } = useEditorStore();
   const project = useProjectStore((s) => s.currentProject);
+  const theme = useUIStore((s) => s.theme);
   const cmRef = useRef<ReactCodeMirrorRef>(null);
   const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number } | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -434,13 +556,17 @@ export default function MarkdownEditor() {
     () => [
       markdown({ codeLanguages: languages, htmlTagLanguage: html() }),
       EditorView.lineWrapping,
-      editorTheme,
-      syntaxHighlighting(highlightStyle),
+      theme === "light" ? editorThemeLight : editorTheme,
+      syntaxHighlighting(theme === "light" ? highlightStyleLight : highlightStyle),
       selectionListener,
       search(),
       keymap.of(searchKeymap),
+      autocompletion({
+        override: [snippetCompletionSource],
+        activateOnTyping: true,
+      }),
     ],
-    [selectionListener]
+    [selectionListener, theme]
   );
 
   return (

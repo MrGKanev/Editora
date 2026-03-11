@@ -66,6 +66,12 @@ const api = {
   gitRemoteUrl: (projectPath: string) =>
     ipcRenderer.invoke(IPC.GIT_REMOTE_URL, projectPath),
 
+  // Export
+  exportHTML: (filePath: string) =>
+    ipcRenderer.invoke(IPC.EXPORT_HTML, filePath),
+  exportPDF: (filePath: string) =>
+    ipcRenderer.invoke(IPC.EXPORT_PDF, filePath),
+
   // Links
   checkLinks: (content: string, filePath: string, projectPath: string) =>
     ipcRenderer.invoke(IPC.LINKS_CHECK, { content, filePath, projectPath }),

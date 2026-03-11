@@ -22,6 +22,9 @@ interface EditorState {
   isDirty: boolean;
   isSaving: boolean;
 
+  // Word count goals (persisted in localStorage)
+  wordGoals: Record<string, number>;
+
   openFile: (filePath: string) => Promise<void>;
   closeTab: (filePath: string) => void;
   setActiveTab: (filePath: string) => void;
@@ -30,6 +33,7 @@ interface EditorState {
   updateFrontmatterField: (key: string, value: unknown) => void;
   save: () => Promise<void>;
   closeFile: () => void;
+  setWordGoal: (path: string, goal: number | null) => void;
 }
 
 function syncActiveTab(state: Partial<EditorState> & Pick<EditorState, "tabs" | "activeTabPath">): Partial<EditorState> {
@@ -63,6 +67,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   frontmatter: {},
   isDirty: false,
   isSaving: false,
+  wordGoals: (() => {
+    try {
+      const stored = localStorage.getItem("editora:wordGoals");
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  })(),
 
   openFile: async (filePath: string) => {
     const { tabs } = get();
@@ -181,5 +193,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       frontmatter: {},
       isDirty: false,
     });
+  },
+
+  setWordGoal: (path: string, goal: number | null) => {
+    const { wordGoals } = get();
+    const updated = { ...wordGoals };
+    if (goal === null || goal <= 0) {
+      delete updated[path];
+    } else {
+      updated[path] = goal;
+    }
+    localStorage.setItem("editora:wordGoals", JSON.stringify(updated));
+    set({ wordGoals: updated });
   },
 }));

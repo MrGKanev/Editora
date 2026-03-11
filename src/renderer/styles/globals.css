@@ -46,6 +46,19 @@
   }
 }
 
+/* Light theme (Catppuccin Latte) */
+.theme-light {
+  --color-editor-bg: #eff1f5;
+  --color-editor-surface: #e6e9ef;
+  --color-editor-border: #ccd0da;
+  --color-editor-text: #4c4f69;
+  --color-editor-muted: #9ca0b0;
+  --color-editor-accent: #1e66f5;
+  --color-editor-success: #40a02b;
+  --color-editor-warning: #df8e1d;
+  --color-editor-danger: #d20f39;
+}
+
 /* Prose overrides for dark theme */
 .prose-invert {
   background-color: var(--color-editor-bg);
@@ -62,6 +75,24 @@
   --tw-prose-hr: #313146;
   --tw-prose-th-borders: #313146;
   --tw-prose-td-borders: #313146;
+}
+
+/* Prose overrides for light theme */
+.theme-light .prose-invert {
+  background-color: var(--color-editor-bg);
+  --tw-prose-body: #4c4f69;
+  --tw-prose-headings: #4c4f69;
+  --tw-prose-links: #1e66f5;
+  --tw-prose-bold: #4c4f69;
+  --tw-prose-code: #8839ef;
+  --tw-prose-pre-bg: #e6e9ef;
+  --tw-prose-pre-code: #4c4f69;
+  --tw-prose-quotes: #6c6f85;
+  --tw-prose-counters: #9ca0b0;
+  --tw-prose-bullets: #9ca0b0;
+  --tw-prose-hr: #ccd0da;
+  --tw-prose-th-borders: #ccd0da;
+  --tw-prose-td-borders: #ccd0da;
 }
 
 /* CodeMirror overrides */

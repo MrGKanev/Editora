@@ -55,9 +55,11 @@ export default function EditorArea() {
   const { currentFile, frontmatter, isDirty, save } = useEditorStore();
   const collections = useProjectStore((s) => s.collections);
   const showPreview = useUIStore((s) => s.showPreview);
+  const focusMode = useUIStore((s) => s.focusMode);
   const [showFrontmatter, setShowFrontmatter] = useState(false);
   const [showSEO, setShowSEO] = useState(false);
   const [showLinks, setShowLinks] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   // Find schema for the current file's collection
   const schema = React.useMemo(() => {
@@ -109,7 +111,7 @@ export default function EditorArea() {
   if (!currentFile) {
     return (
       <div className="flex-1 flex flex-col">
-        <TabBar />
+        {!focusMode && <TabBar />}
         <div className="flex-1 flex items-center justify-center text-editor-muted">
           <div className="text-center">
             <p className="text-lg">Select a file to edit</p>
@@ -127,10 +129,10 @@ export default function EditorArea() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative">
       {/* Tab bar */}
-      <TabBar />
+      {!focusMode && <TabBar />}
 
       {/* Toolbar */}
-      <div
+      {!focusMode && <div
         className="flex items-center justify-between px-4 py-1.5 border-b bg-editor-surface text-sm"
         style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
       >
@@ -175,8 +177,42 @@ export default function EditorArea() {
               Frontmatter ({fieldCount})
             </button>
           )}
+          <div className="relative">
+            <button
+              onClick={() => setShowExportMenu((v) => !v)}
+              className={`px-2.5 py-1 text-xs rounded transition-colors ${
+                showExportMenu
+                  ? "bg-editor-accent text-editor-bg"
+                  : "text-editor-muted hover:text-editor-text hover:bg-editor-border/50"
+              }`}
+            >
+              Export
+            </button>
+            {showExportMenu && (
+              <div className="absolute right-0 top-full mt-1 bg-editor-surface border rounded-lg shadow-xl py-1 min-w-[160px] z-50">
+                <button
+                  onClick={() => {
+                    setShowExportMenu(false);
+                    if (currentFile) window.editora.exportHTML(currentFile.path);
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs text-editor-text hover:bg-editor-accent/20 transition-colors"
+                >
+                  Export as HTML
+                </button>
+                <button
+                  onClick={() => {
+                    setShowExportMenu(false);
+                    if (currentFile) window.editora.exportPDF(currentFile.path);
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs text-editor-text hover:bg-editor-accent/20 transition-colors"
+                >
+                  Export as PDF
+                </button>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </div>}
 
       {/* Editor + Preview */}
       <SplitView showPreview={showPreview} />

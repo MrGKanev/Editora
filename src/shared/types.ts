@@ -117,6 +117,10 @@ export const IPC = {
   GIT_CHECKOUT: "git:checkout",
   GIT_REMOTE_URL: "git:remote-url",
 
+  // Export
+  EXPORT_HTML: "export:html",
+  EXPORT_PDF: "export:pdf",
+
   // Links
   LINKS_CHECK: "links:check",
 

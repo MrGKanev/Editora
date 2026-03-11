@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { DevServerState, GitStatus } from "../../shared/types";
 
 type Panel = "collections" | "media" | "git" | "preview";
+type Theme = "dark" | "light";
 
 interface UIState {
   activePanel: Panel;
@@ -13,6 +14,8 @@ interface UIState {
   devServer: DevServerState;
   gitStatus: GitStatus | null;
   serverLogs: string[];
+  focusMode: boolean;
+  theme: Theme;
 
   setActivePanel: (panel: Panel) => void;
   setSidebarWidth: (width: number) => void;
@@ -24,7 +27,17 @@ interface UIState {
   setGitStatus: (status: GitStatus | null) => void;
   addServerLog: (log: string) => void;
   clearServerLogs: () => void;
+  toggleFocusMode: () => void;
+  toggleTheme: () => void;
 }
+
+const getStoredTheme = (): Theme => {
+  try {
+    const stored = localStorage.getItem("editora-theme");
+    if (stored === "light" || stored === "dark") return stored;
+  } catch {}
+  return "dark";
+};
 
 export const useUIStore = create<UIState>((set) => ({
   activePanel: "collections",
@@ -36,6 +49,8 @@ export const useUIStore = create<UIState>((set) => ({
   devServer: { status: "stopped" },
   gitStatus: null,
   serverLogs: [],
+  focusMode: false,
+  theme: getStoredTheme(),
 
   setActivePanel: (activePanel) => set({ activePanel }),
   setSidebarWidth: (sidebarWidth) => set({ sidebarWidth }),
@@ -48,4 +63,11 @@ export const useUIStore = create<UIState>((set) => ({
   addServerLog: (log) =>
     set((s) => ({ serverLogs: [...s.serverLogs.slice(-500), log] })),
   clearServerLogs: () => set({ serverLogs: [] }),
+  toggleFocusMode: () => set((s) => ({ focusMode: !s.focusMode })),
+  toggleTheme: () =>
+    set((s) => {
+      const next = s.theme === "dark" ? "light" : "dark";
+      try { localStorage.setItem("editora-theme", next); } catch {}
+      return { theme: next };
+    }),
 }));

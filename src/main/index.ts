@@ -6,6 +6,7 @@ import { registerMediaHandlers } from "./ipc/media";
 import { registerGitHandlers } from "./ipc/git";
 import { registerServerHandlers } from "./ipc/server";
 import { registerLinkHandlers } from "./ipc/links";
+import { registerExportHandlers } from "./ipc/export";
 import { createAppMenu } from "./menu";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -43,6 +44,7 @@ const createWindow = () => {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      spellcheck: true,
     },
   });
 
@@ -79,6 +81,27 @@ const createWindow = () => {
     return { action: "deny" };
   });
 
+  // Spell check context menu
+  mainWindow.webContents.on("context-menu", (_event, params) => {
+    if (params.misspelledWord) {
+      const menu = Menu.buildFromTemplate([
+        ...params.dictionarySuggestions.map((suggestion) => ({
+          label: suggestion,
+          click: () => mainWindow!.webContents.replaceMisspelling(suggestion),
+        })),
+        { type: "separator" as const },
+        {
+          label: "Add to Dictionary",
+          click: () =>
+            mainWindow!.webContents.session.addWordToSpellCheckerDictionary(
+              params.misspelledWord
+            ),
+        },
+      ]);
+      menu.popup();
+    }
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
@@ -92,6 +115,7 @@ const registerAllHandlers = () => {
   registerGitHandlers();
   registerServerHandlers();
   registerLinkHandlers();
+  registerExportHandlers();
 
   ipcMain.handle("shell:show-item-in-folder", (_event, filePath: string) => {
     shell.showItemInFolder(filePath);

@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { useEditorStore } from "../../store/editor-store";
 import { slugify } from "../../utils/markdown";
+import RelatedContent from "./RelatedContent";
 
 interface SEOPanelProps {
   isOpen: boolean;
@@ -292,6 +293,11 @@ export default function SEOPanel({ isOpen, onClose }: SEOPanelProps) {
                 label="Has a social/OG image"
               />
             </div>
+          </div>
+
+          {/* Related Content for internal linking */}
+          <div className="border-t pt-5">
+            <RelatedContent />
           </div>
         </div>
       </div>
