@@ -1,44 +1,66 @@
 import React, { useState } from "react";
 import { useEditorStore } from "../../store/editor-store";
 
-export default function FrontmatterForm() {
+export default function FrontmatterForm({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
   const { frontmatter, updateFrontmatterField } = useEditorStore();
-  const [isExpanded, setIsExpanded] = useState(true);
 
   const entries = Object.entries(frontmatter);
-  if (entries.length === 0) return null;
 
   return (
-    <div className="border-b bg-editor-surface">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center gap-2 px-4 py-2 text-sm font-medium
-                   text-editor-muted hover:text-editor-text transition-colors"
-      >
-        <span
-          className={`text-xs transition-transform ${
-            isExpanded ? "rotate-90" : ""
-          }`}
-        >
-          &#9656;
-        </span>
-        Frontmatter
-        <span className="text-xs">({entries.length} fields)</span>
-      </button>
-
-      {isExpanded && (
-        <div className="px-4 pb-3 grid grid-cols-2 gap-x-4 gap-y-2">
-          {entries.map(([key, value]) => (
-            <FrontmatterField
-              key={key}
-              name={key}
-              value={value}
-              onChange={(v) => updateFrontmatterField(key, v)}
-            />
-          ))}
-        </div>
+    <>
+      {/* Backdrop */}
+      {isOpen && (
+        <div
+          className="absolute inset-0 bg-black/30 z-10"
+          onClick={onClose}
+        />
       )}
-    </div>
+
+      {/* Drawer */}
+      <div
+        className={`absolute top-0 right-0 h-full w-[400px] max-w-[80%] bg-editor-surface border-l
+                     z-20 flex flex-col transition-transform duration-200 ease-in-out
+                     ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b">
+          <h2 className="text-sm font-medium">
+            Frontmatter
+            <span className="text-editor-muted ml-2 text-xs">
+              ({entries.length} fields)
+            </span>
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-editor-muted hover:text-editor-text text-lg leading-none px-1"
+          >
+            &times;
+          </button>
+        </div>
+
+        {/* Fields */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {entries.length === 0 ? (
+            <p className="text-sm text-editor-muted">No frontmatter fields</p>
+          ) : (
+            entries.map(([key, value]) => (
+              <FrontmatterField
+                key={key}
+                name={key}
+                value={value}
+                onChange={(v) => updateFrontmatterField(key, v)}
+              />
+            ))
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -77,7 +99,7 @@ function FrontmatterField({
           type="date"
           value={dateStr}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-2 py-1 text-sm bg-editor-bg border rounded
+          className="w-full px-2 py-1.5 text-sm bg-editor-bg border rounded
                      focus:outline-none focus:border-editor-accent"
         />
       </div>
@@ -95,7 +117,7 @@ function FrontmatterField({
             onChange(e.target.value.split(",").map((s) => s.trim()))
           }
           placeholder="tag1, tag2, tag3"
-          className="w-full px-2 py-1 text-sm bg-editor-bg border rounded
+          className="w-full px-2 py-1.5 text-sm bg-editor-bg border rounded
                      focus:outline-none focus:border-editor-accent"
         />
       </div>
@@ -110,7 +132,7 @@ function FrontmatterField({
           type="number"
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full px-2 py-1 text-sm bg-editor-bg border rounded
+          className="w-full px-2 py-1.5 text-sm bg-editor-bg border rounded
                      focus:outline-none focus:border-editor-accent"
         />
       </div>
@@ -119,17 +141,17 @@ function FrontmatterField({
 
   // Default: text input (use textarea for long values)
   const strValue = String(value ?? "");
-  const isLong = strValue.length > 100;
+  const isLong = strValue.length > 80;
 
   return (
-    <div className={isLong ? "col-span-2" : ""}>
+    <div>
       <label className="block text-xs text-editor-muted mb-1">{name}</label>
       {isLong ? (
         <textarea
           value={strValue}
           onChange={(e) => onChange(e.target.value)}
           rows={3}
-          className="w-full px-2 py-1 text-sm bg-editor-bg border rounded resize-y
+          className="w-full px-2 py-1.5 text-sm bg-editor-bg border rounded resize-y
                      focus:outline-none focus:border-editor-accent"
         />
       ) : (
@@ -137,7 +159,7 @@ function FrontmatterField({
           type="text"
           value={strValue}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-2 py-1 text-sm bg-editor-bg border rounded
+          className="w-full px-2 py-1.5 text-sm bg-editor-bg border rounded
                      focus:outline-none focus:border-editor-accent"
         />
       )}

@@ -7,34 +7,43 @@ const CONTENT_EXTENSIONS = [".md", ".mdx"];
 
 export class CollectionDiscovery {
   async discoverCollections(projectPath: string): Promise<ContentCollection[]> {
-    const contentDir = path.join(projectPath, "src", "content");
+    // Astro 5+ uses src/content/ by default, scan any content directories found
+    const contentDirs = [
+      path.join(projectPath, "src", "content"),
+      path.join(projectPath, "content"),
+    ];
 
-    try {
-      await fs.access(contentDir);
-    } catch {
-      return [];
-    }
-
-    const entries = await fs.readdir(contentDir, { withFileTypes: true });
     const collections: ContentCollection[] = [];
 
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      // Skip config files and hidden dirs
-      if (entry.name.startsWith(".") || entry.name.startsWith("_")) continue;
+    for (const contentDir of contentDirs) {
+      try {
+        await fs.access(contentDir);
+      } catch {
+        continue;
+      }
 
-      const collectionPath = path.join(contentDir, entry.name);
-      const files = await this.getCollectionFiles(collectionPath);
+      const entries = await fs.readdir(contentDir, { withFileTypes: true });
 
-      // Infer schema from first file's frontmatter
-      const schema = files.length > 0 ? this.inferSchema(files) : undefined;
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        // Skip config files and hidden dirs
+        if (entry.name.startsWith(".") || entry.name.startsWith("_")) continue;
+        // Avoid duplicates if both dirs have same collection name
+        if (collections.some((c) => c.name === entry.name)) continue;
 
-      collections.push({
-        name: entry.name,
-        path: collectionPath,
-        files,
-        schema,
-      });
+        const collectionPath = path.join(contentDir, entry.name);
+        const files = await this.getCollectionFiles(collectionPath);
+
+        // Infer schema from first file's frontmatter
+        const schema = files.length > 0 ? this.inferSchema(files) : undefined;
+
+        collections.push({
+          name: entry.name,
+          path: collectionPath,
+          files,
+          schema,
+        });
+      }
     }
 
     return collections;

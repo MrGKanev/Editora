@@ -23,7 +23,7 @@ export default function ProjectSelector() {
   };
 
   return (
-    <div className="flex items-center justify-center h-screen">
+    <div className="flex items-center justify-center h-full">
       <div className="w-[480px] space-y-8">
         {/* Logo */}
         <div className="text-center">

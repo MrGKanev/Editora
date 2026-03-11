@@ -18,7 +18,7 @@ export default function Sidebar() {
   return (
     <div
       className="flex flex-col border-r bg-editor-surface"
-      style={{ width: sidebarWidth }}
+      style={{ width: sidebarWidth, WebkitAppRegion: "no-drag" } as React.CSSProperties}
     >
       {/* Panel tabs */}
       <div className="flex border-b">

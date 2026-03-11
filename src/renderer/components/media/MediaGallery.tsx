@@ -83,7 +83,7 @@ export default function MediaGallery() {
                          hover:border-editor-accent transition-colors"
             >
               <img
-                src={`file://${file.path}`}
+                src={`local-file://${encodeURIComponent(file.path)}`}
                 alt={file.name}
                 className="w-full h-20 object-cover"
                 loading="lazy"

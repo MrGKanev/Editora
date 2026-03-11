@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu } from "electron";
+import { app, BrowserWindow, Menu, protocol, net } from "electron";
 import path from "node:path";
 import { registerProjectHandlers } from "./ipc/project";
 import { registerContentHandlers } from "./ipc/content";
@@ -11,6 +11,19 @@ import { createAppMenu } from "./menu";
 if (require("electron-squirrel-startup")) {
   app.quit();
 }
+
+// Register custom protocol for local file access (media images)
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: "local-file",
+    privileges: {
+      secure: true,
+      supportFetchAPI: true,
+      bypassCSP: true,
+      stream: true,
+    },
+  },
+]);
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -60,6 +73,12 @@ const registerAllHandlers = () => {
 };
 
 app.whenReady().then(() => {
+  // Handle local-file:// protocol for serving media images
+  protocol.handle("local-file", (request) => {
+    const filePath = decodeURIComponent(request.url.replace("local-file://", ""));
+    return net.fetch(`file://${filePath}`);
+  });
+
   registerAllHandlers();
   Menu.setApplicationMenu(createAppMenu());
   createWindow();

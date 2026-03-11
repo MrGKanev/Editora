@@ -21,7 +21,7 @@ export function registerProjectHandlers() {
     const projectPath = result.filePaths[0];
     const isValid = await projectManager.validateAstroProject(projectPath);
     if (!isValid) {
-      return { error: "Not a valid Astro project. No astro.config.* found." };
+      return { error: "Not a valid Astro project. No astro dependency found in package.json." };
     }
 
     const project = await projectManager.openProject(projectPath);

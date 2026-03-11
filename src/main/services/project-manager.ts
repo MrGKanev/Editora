@@ -10,6 +10,18 @@ const store = new Store<{ recentProjects: Project[] }>({
 
 export class ProjectManager {
   async validateAstroProject(projectPath: string): Promise<boolean> {
+    // Primary check: astro dependency in package.json
+    try {
+      const pkgPath = path.join(projectPath, "package.json");
+      const pkgRaw = await fs.readFile(pkgPath, "utf-8");
+      const pkg = JSON.parse(pkgRaw);
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+      if (deps["astro"]) return true;
+    } catch {
+      // No package.json or invalid JSON
+    }
+
+    // Fallback: check for astro.config.* (older projects or monorepos)
     const configNames = [
       "astro.config.mjs",
       "astro.config.ts",
