@@ -1,13 +1,29 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useProjectStore } from "../../store/project-store";
 import { useEditorStore } from "../../store/editor-store";
 import { useUIStore } from "../../store/ui-store";
+import DeployButton from "./DeployButton";
+
+function useWordStats(text: string) {
+  return useMemo(() => {
+    if (!text) return { words: 0, chars: 0, readingTime: "0 min" };
+    const words = text.trim().split(/\s+/).filter(Boolean).length;
+    const chars = text.length;
+    const minutes = Math.max(1, Math.ceil(words / 250));
+    return {
+      words,
+      chars,
+      readingTime: `${minutes} min read`,
+    };
+  }, [text]);
+}
 
 export default function StatusBar() {
   const project = useProjectStore((s) => s.currentProject);
-  const { currentFile, isDirty, isSaving } = useEditorStore();
+  const { currentFile, isDirty, isSaving, editorContent } = useEditorStore();
   const { devServer, gitStatus, toggleTerminal, showTerminal } = useUIStore();
   const setProject = useProjectStore((s) => s.setProject);
+  const stats = useWordStats(editorContent);
 
   return (
     <div className="flex items-center justify-between px-3 py-1 border-t bg-editor-surface text-xs text-editor-muted">
@@ -39,6 +55,17 @@ export default function StatusBar() {
       </div>
 
       <div className="flex items-center gap-3">
+        {/* Word count + reading time */}
+        {currentFile && (
+          <span className="flex items-center gap-2">
+            <span>{stats.words} words</span>
+            <span className="text-editor-border">|</span>
+            <span>{stats.chars} chars</span>
+            <span className="text-editor-border">|</span>
+            <span>{stats.readingTime}</span>
+          </span>
+        )}
+
         {/* Save status */}
         {currentFile && (
           <span>
@@ -49,6 +76,9 @@ export default function StatusBar() {
               : "Saved"}
           </span>
         )}
+
+        {/* Deploy */}
+        <DeployButton />
 
         {/* Terminal toggle */}
         <button

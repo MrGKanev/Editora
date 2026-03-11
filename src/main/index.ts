@@ -5,6 +5,7 @@ import { registerContentHandlers } from "./ipc/content";
 import { registerMediaHandlers } from "./ipc/media";
 import { registerGitHandlers } from "./ipc/git";
 import { registerServerHandlers } from "./ipc/server";
+import { registerLinkHandlers } from "./ipc/links";
 import { createAppMenu } from "./menu";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -34,6 +35,7 @@ const createWindow = () => {
     minWidth: 900,
     minHeight: 600,
     title: "Editora",
+    icon: path.join(__dirname, "../../assets/icons/icon.png"),
     titleBarStyle: process.platform === "darwin" ? "hiddenInset" : "default",
     backgroundColor: "#1e1e2e",
     webPreferences: {
@@ -58,7 +60,7 @@ const createWindow = () => {
     mainWindow.webContents.openDevTools();
   }
 
-  // Prevent navigation — open external links in browser instead
+  // Prevent navigation - open external links in browser instead
   mainWindow.webContents.on("will-navigate", (event, url) => {
     // Allow dev server reload
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL && url.startsWith(MAIN_WINDOW_VITE_DEV_SERVER_URL)) {
@@ -89,6 +91,7 @@ const registerAllHandlers = () => {
   registerMediaHandlers();
   registerGitHandlers();
   registerServerHandlers();
+  registerLinkHandlers();
 
   ipcMain.handle("shell:show-item-in-folder", (_event, filePath: string) => {
     shell.showItemInFolder(filePath);

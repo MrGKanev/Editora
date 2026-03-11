@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useProjectStore } from "../../store/project-store";
 import { useEditorStore } from "../../store/editor-store";
-import { ContentCollection } from "../../../shared/types";
+import { ContentCollection, ContentFile } from "../../../shared/types";
+import BulkEditModal from "./BulkEditModal";
 
 export default function CollectionList() {
   const { collections, loadCollections } = useProjectStore();
@@ -137,6 +138,101 @@ function NewFileForm({
   );
 }
 
+// Context menu for file actions
+function FileContextMenu({
+  x,
+  y,
+  file,
+  onClose,
+  onRename,
+  onDuplicate,
+  onDelete,
+}: {
+  x: number;
+  y: number;
+  file: ContentFile;
+  onClose: () => void;
+  onRename: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  const items = [
+    { label: "Rename", action: onRename },
+    { label: "Duplicate", action: onDuplicate },
+    { label: "Delete", action: onDelete, danger: true },
+  ];
+
+  return (
+    <div
+      ref={ref}
+      className="fixed z-50 bg-editor-surface border rounded-lg shadow-xl py-1 min-w-[140px]"
+      style={{ left: x, top: y }}
+    >
+      {items.map((item) => (
+        <button
+          key={item.label}
+          onClick={() => {
+            item.action();
+            onClose();
+          }}
+          className={`w-full text-left px-3 py-1.5 text-xs transition-colors
+            ${item.danger
+              ? "text-editor-danger hover:bg-editor-danger/10"
+              : "text-editor-text hover:bg-editor-accent/20"
+            }`}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Inline rename form
+function RenameForm({
+  currentName,
+  onRename,
+  onCancel,
+}: {
+  currentName: string;
+  onRename: (newName: string) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState(currentName);
+
+  return (
+    <input
+      type="text"
+      value={name}
+      onChange={(e) => setName(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          const trimmed = name.trim();
+          if (trimmed && trimmed !== currentName) onRename(trimmed);
+          else onCancel();
+        }
+        if (e.key === "Escape") onCancel();
+      }}
+      onBlur={onCancel}
+      autoFocus
+      className="w-full px-2 py-1 text-xs bg-editor-bg border border-editor-accent rounded
+                 focus:outline-none"
+    />
+  );
+}
+
 function CollectionItem({
   collection,
   isExpanded,
@@ -153,11 +249,62 @@ function CollectionItem({
   activeFilePath?: string;
 }) {
   const [showNewFile, setShowNewFile] = useState(false);
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; file: ContentFile } | null>(null);
+  const [renamingPath, setRenamingPath] = useState<string | null>(null);
+  const loadCollections = useProjectStore((s) => s.loadCollections);
+  const closeTab = useEditorStore((s) => s.closeTab);
 
   const handleCreated = (filePath: string) => {
     setShowNewFile(false);
     onFileCreated();
     onFileSelect(filePath);
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, file: ContentFile) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, file });
+  };
+
+  const handleRename = async (file: ContentFile, newName: string) => {
+    try {
+      const result = await window.editora.renameContent(file.path, newName);
+      if (result && "error" in result) {
+        console.error(result.error);
+        return;
+      }
+      // Close old tab if open, reload collections, open new path
+      closeTab(file.path);
+      await loadCollections();
+      if (result.path) onFileSelect(result.path);
+    } catch (err) {
+      console.error("Failed to rename:", err);
+    }
+    setRenamingPath(null);
+  };
+
+  const handleDuplicate = async (file: ContentFile) => {
+    try {
+      const result = await window.editora.duplicateContent(file.path);
+      if (result && "error" in result) {
+        console.error(result.error);
+        return;
+      }
+      await loadCollections();
+      if (result.path) onFileSelect(result.path);
+    } catch (err) {
+      console.error("Failed to duplicate:", err);
+    }
+  };
+
+  const handleDelete = async (file: ContentFile) => {
+    try {
+      await window.editora.deleteContent(file.path);
+      closeTab(file.path);
+      await loadCollections();
+    } catch (err) {
+      console.error("Failed to delete:", err);
+    }
   };
 
   return (
@@ -183,6 +330,17 @@ function CollectionItem({
         <button
           onClick={(e) => {
             e.stopPropagation();
+            setShowBulkEdit(true);
+          }}
+          title={`Bulk edit ${collection.name}`}
+          className="px-1.5 py-1 text-editor-muted hover:text-editor-accent
+                     opacity-0 group-hover:opacity-100 transition-all text-[10px] flex-shrink-0"
+        >
+          Bulk
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
             if (!isExpanded) onToggle();
             setShowNewFile(true);
           }}
@@ -204,21 +362,55 @@ function CollectionItem({
             />
           )}
           {collection.files.map((file) => (
-            <button
-              key={file.path}
-              onClick={() => onFileSelect(file.path)}
-              className={`w-full text-left px-3 py-1 text-sm truncate transition-colors
-                ${
-                  activeFilePath === file.path
-                    ? "bg-editor-accent/10 text-editor-accent"
-                    : "text-editor-muted hover:text-editor-text hover:bg-editor-bg/50"
-                }`}
-            >
-              {file.name}
-            </button>
+            <div key={file.path} className="relative">
+              {renamingPath === file.path ? (
+                <div className="px-3 py-0.5">
+                  <RenameForm
+                    currentName={file.name}
+                    onRename={(newName) => handleRename(file, newName)}
+                    onCancel={() => setRenamingPath(null)}
+                  />
+                </div>
+              ) : (
+                <button
+                  onClick={() => onFileSelect(file.path)}
+                  onContextMenu={(e) => handleContextMenu(e, file)}
+                  className={`w-full text-left px-3 py-1 text-sm truncate transition-colors
+                    ${
+                      activeFilePath === file.path
+                        ? "bg-editor-accent/10 text-editor-accent"
+                        : "text-editor-muted hover:text-editor-text hover:bg-editor-bg/50"
+                    }`}
+                >
+                  {file.name}
+                </button>
+              )}
+            </div>
           ))}
         </div>
       )}
+
+      {contextMenu && (
+        <FileContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          file={contextMenu.file}
+          onClose={() => setContextMenu(null)}
+          onRename={() => setRenamingPath(contextMenu.file.path)}
+          onDuplicate={() => handleDuplicate(contextMenu.file)}
+          onDelete={() => handleDelete(contextMenu.file)}
+        />
+      )}
+
+      <BulkEditModal
+        isOpen={showBulkEdit}
+        onClose={() => setShowBulkEdit(false)}
+        collection={collection}
+        onComplete={() => {
+          setShowBulkEdit(false);
+          loadCollections();
+        }}
+      />
     </div>
   );
 }

@@ -91,4 +91,53 @@ export function registerContentHandlers() {
       return { error: `Failed to delete file: ${(err as Error).message}` };
     }
   });
+
+  ipcMain.handle(
+    IPC.CONTENT_RENAME,
+    async (_event, oldPath: string, newName: string) => {
+      try {
+        const dir = path.dirname(oldPath);
+        const newPath = ensureWithinDir(dir, newName);
+        const exists = await fs
+          .access(newPath)
+          .then(() => true)
+          .catch(() => false);
+        if (exists) {
+          return { error: "A file with that name already exists" };
+        }
+        await fs.rename(oldPath, newPath);
+        return { success: true, path: newPath };
+      } catch (err) {
+        return { error: `Failed to rename file: ${(err as Error).message}` };
+      }
+    }
+  );
+
+  ipcMain.handle(
+    IPC.CONTENT_DUPLICATE,
+    async (_event, filePath: string) => {
+      try {
+        const dir = path.dirname(filePath);
+        const ext = path.extname(filePath);
+        const base = path.basename(filePath, ext);
+        let copyName = `${base}-copy${ext}`;
+        let copyPath = path.join(dir, copyName);
+        let i = 2;
+        while (
+          await fs
+            .access(copyPath)
+            .then(() => true)
+            .catch(() => false)
+        ) {
+          copyName = `${base}-copy-${i}${ext}`;
+          copyPath = path.join(dir, copyName);
+          i++;
+        }
+        await fs.copyFile(filePath, copyPath);
+        return { success: true, path: copyPath };
+      } catch (err) {
+        return { error: `Failed to duplicate file: ${(err as Error).message}` };
+      }
+    }
+  );
 }

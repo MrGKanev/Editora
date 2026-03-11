@@ -97,12 +97,16 @@ export const IPC = {
   CONTENT_WRITE: "content:write",
   CONTENT_CREATE: "content:create",
   CONTENT_DELETE: "content:delete",
+  CONTENT_RENAME: "content:rename",
+  CONTENT_DUPLICATE: "content:duplicate",
 
   // Media
   MEDIA_LIST: "media:list",
   MEDIA_UPLOAD: "media:upload",
   MEDIA_DELETE: "media:delete",
   MEDIA_GET_PATH: "media:get-path",
+  MEDIA_IMAGE_INFO: "media:image-info",
+  MEDIA_OPTIMIZE_UPLOAD: "media:optimize-upload",
 
   // Git
   GIT_STATUS: "git:status",
@@ -111,6 +115,10 @@ export const IPC = {
   GIT_PULL: "git:pull",
   GIT_BRANCHES: "git:branches",
   GIT_CHECKOUT: "git:checkout",
+  GIT_REMOTE_URL: "git:remote-url",
+
+  // Links
+  LINKS_CHECK: "links:check",
 
   // Dev Server
   SERVER_START: "server:start",

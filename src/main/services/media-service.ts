@@ -15,7 +15,7 @@ export class MediaService {
       path.join(projectPath, "src", "assets"),
     ];
 
-    // Also scan content directories — images often live alongside markdown
+    // Also scan content directories - images often live alongside markdown
     if (contentDirs) {
       for (const dir of contentDirs) {
         const abs = path.isAbsolute(dir) ? dir : path.join(projectPath, dir);

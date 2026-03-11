@@ -40,4 +40,11 @@ export function registerGitHandlers() {
       return gitService.checkout(projectPath, branch);
     }
   );
+
+  ipcMain.handle(
+    IPC.GIT_REMOTE_URL,
+    async (_event, projectPath: string): Promise<string | null> => {
+      return gitService.getRemoteUrl(projectPath);
+    }
+  );
 }

@@ -1,18 +1,87 @@
 import React, { useEffect, useState } from "react";
 import { useEditorStore } from "../../store/editor-store";
+import { useProjectStore } from "../../store/project-store";
 import { useUIStore } from "../../store/ui-store";
 import SplitView from "./SplitView";
 import FrontmatterForm from "./FrontmatterForm";
+import SEOPanel from "./SEOPanel";
+import LinkCheckerPanel from "./LinkCheckerPanel";
+
+function TabBar() {
+  const { tabs, activeTabPath, setActiveTab, closeTab } = useEditorStore();
+
+  if (tabs.length === 0) return null;
+
+  return (
+    <div
+      className="flex items-center border-b bg-editor-surface overflow-x-auto"
+      style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+    >
+      {tabs.map((tab) => {
+        const isActive = tab.file.path === activeTabPath;
+        return (
+          <div
+            key={tab.file.path}
+            className={`group flex items-center gap-1.5 px-3 py-1.5 text-xs border-r cursor-pointer
+              select-none min-w-0 max-w-[180px] transition-colors
+              ${isActive
+                ? "bg-editor-bg text-editor-text"
+                : "text-editor-muted hover:text-editor-text hover:bg-editor-bg/50"
+              }`}
+            onClick={() => setActiveTab(tab.file.path)}
+          >
+            <span className="truncate">{tab.file.name}</span>
+            {tab.isDirty && (
+              <span className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-editor-accent" />
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                closeTab(tab.file.path);
+              }}
+              className="flex-shrink-0 ml-auto opacity-0 group-hover:opacity-100
+                         hover:text-editor-danger transition-all text-[10px] leading-none"
+            >
+              &times;
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function EditorArea() {
   const { currentFile, frontmatter, isDirty, save } = useEditorStore();
+  const collections = useProjectStore((s) => s.collections);
   const showPreview = useUIStore((s) => s.showPreview);
   const [showFrontmatter, setShowFrontmatter] = useState(false);
+  const [showSEO, setShowSEO] = useState(false);
+  const [showLinks, setShowLinks] = useState(false);
 
-  // Close drawer when switching files
+  // Find schema for the current file's collection
+  const schema = React.useMemo(() => {
+    if (!currentFile) return undefined;
+    for (const col of collections) {
+      if (col.files.some((f) => f.path === currentFile.path)) {
+        return col.schema;
+      }
+    }
+    return undefined;
+  }, [currentFile, collections]);
+
+  // Close drawers when switching files
   useEffect(() => {
     setShowFrontmatter(false);
+    setShowSEO(false);
+    setShowLinks(false);
   }, [currentFile?.path]);
+
+  const closeAllDrawers = () => {
+    setShowFrontmatter(false);
+    setShowSEO(false);
+    setShowLinks(false);
+  };
 
   // Keyboard shortcut: Ctrl/Cmd + S
   useEffect(() => {
@@ -39,12 +108,15 @@ export default function EditorArea() {
 
   if (!currentFile) {
     return (
-      <div className="flex-1 flex items-center justify-center text-editor-muted">
-        <div className="text-center">
-          <p className="text-lg">Select a file to edit</p>
-          <p className="text-sm mt-1">
-            Choose a content file from the sidebar
-          </p>
+      <div className="flex-1 flex flex-col">
+        <TabBar />
+        <div className="flex-1 flex items-center justify-center text-editor-muted">
+          <div className="text-center">
+            <p className="text-lg">Select a file to edit</p>
+            <p className="text-sm mt-1">
+              Choose a content file from the sidebar
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -54,6 +126,9 @@ export default function EditorArea() {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden relative">
+      {/* Tab bar */}
+      <TabBar />
+
       {/* Toolbar */}
       <div
         className="flex items-center justify-between px-4 py-1.5 border-b bg-editor-surface text-sm"
@@ -68,9 +143,29 @@ export default function EditorArea() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => { const next = !showLinks; closeAllDrawers(); setShowLinks(next); }}
+            className={`px-2.5 py-1 text-xs rounded transition-colors ${
+              showLinks
+                ? "bg-editor-accent text-editor-bg"
+                : "text-editor-muted hover:text-editor-text hover:bg-editor-border/50"
+            }`}
+          >
+            Links
+          </button>
+          <button
+            onClick={() => { const next = !showSEO; closeAllDrawers(); setShowSEO(next); }}
+            className={`px-2.5 py-1 text-xs rounded transition-colors ${
+              showSEO
+                ? "bg-editor-accent text-editor-bg"
+                : "text-editor-muted hover:text-editor-text hover:bg-editor-border/50"
+            }`}
+          >
+            SEO
+          </button>
           {fieldCount > 0 && (
             <button
-              onClick={() => setShowFrontmatter(!showFrontmatter)}
+              onClick={() => { const next = !showFrontmatter; closeAllDrawers(); setShowFrontmatter(next); }}
               className={`px-2.5 py-1 text-xs rounded transition-colors ${
                 showFrontmatter
                   ? "bg-editor-accent text-editor-bg"
@@ -90,6 +185,19 @@ export default function EditorArea() {
       <FrontmatterForm
         isOpen={showFrontmatter}
         onClose={() => setShowFrontmatter(false)}
+        schema={schema}
+      />
+
+      {/* SEO drawer */}
+      <SEOPanel
+        isOpen={showSEO}
+        onClose={() => setShowSEO(false)}
+      />
+
+      {/* Link checker drawer */}
+      <LinkCheckerPanel
+        isOpen={showLinks}
+        onClose={() => setShowLinks(false)}
       />
     </div>
   );

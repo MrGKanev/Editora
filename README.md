@@ -6,7 +6,7 @@
 
 <p align="center">
   A desktop CMS for static site generators.<br>
-  Edit Markdown, manage frontmatter, preview content — all in one place.
+  Edit Markdown, manage frontmatter, preview content - all in one place.
 </p>
 
 <p align="center">
@@ -21,7 +21,7 @@
 
 Editora is a desktop content editor built for teams and individuals who use static site generators. Instead of editing raw files in a code editor, Editora provides a focused writing environment with live preview, frontmatter management, media handling, and built-in Git support.
 
-Open your project (or clone a Git repo), edit content collections with a split-view Markdown editor, manage media, commit & push changes, and preview your site — all from one app.
+Open your project (or clone a Git repo), edit content collections with a split-view Markdown editor, manage media, commit & push changes, and preview your site - all from one app.
 
 ### Supported Static Site Generators
 
@@ -40,14 +40,14 @@ Open your project (or clone a Git repo), edit content collections with a split-v
 
 ## Features
 
-- **Split Editor + Preview** — Write Markdown on the left, see rendered output on the right
-- **Frontmatter Editor** — Visual form for editing YAML frontmatter fields (text, dates, tags, booleans, numbers)
-- **Media Gallery** — Browse, upload, and manage images within your project. Insert into editor with one click
-- **Built-in Git** — Stage, commit, push, and pull without leaving the editor
-- **Dev Server** — Start your SSG dev server and see terminal output in-app
-- **Auto-detection** — Detects your SSG and content directories automatically
-- **Keyboard Shortcuts** — Standard shortcuts for save, find, preview toggle, and more
-- **Cross-platform** — Builds for macOS (.dmg), Windows (.exe), and Linux (.deb)
+- **Split Editor + Preview** - Write Markdown on the left, see rendered output on the right
+- **Frontmatter Editor** - Visual form for editing YAML frontmatter fields (text, dates, tags, booleans, numbers)
+- **Media Gallery** - Browse, upload, and manage images within your project. Insert into editor with one click
+- **Built-in Git** - Stage, commit, push, and pull without leaving the editor
+- **Dev Server** - Start your SSG dev server and see terminal output in-app
+- **Auto-detection** - Detects your SSG and content directories automatically
+- **Keyboard Shortcuts** - Standard shortcuts for save, find, preview toggle, and more
+- **Cross-platform** - Builds for macOS (.dmg), Windows (.exe), and Linux (.deb)
 
 ## Getting Started
 
@@ -81,14 +81,14 @@ Installers are output to the `out/make/` directory.
 
 ## Usage
 
-1. **Open a project** — Click "Open Project" and select a folder, or clone a Git repo directly
-2. **Browse collections** — The sidebar auto-discovers content collections. Click a file to open it
-3. **Edit content** — Markdown on the left, live preview on the right. Use the floating toolbar for formatting
-4. **Frontmatter** — Click the "Frontmatter" button to edit metadata fields visually
-5. **Save** — `Cmd+S` / `Ctrl+S` saves the file. Use `Save As` to export to a new location
-6. **Manage media** — Switch to the Media tab to browse, upload, or insert images
-7. **Commit & push** — Switch to the Git tab, write a commit message, and push
-8. **Preview** — Switch to the Preview tab and start the dev server
+1. **Open a project** - Click "Open Project" and select a folder, or clone a Git repo directly
+2. **Browse collections** - The sidebar auto-discovers content collections. Click a file to open it
+3. **Edit content** - Markdown on the left, live preview on the right. Use the floating toolbar for formatting
+4. **Frontmatter** - Click the "Frontmatter" button to edit metadata fields visually
+5. **Save** - `Cmd+S` / `Ctrl+S` saves the file. Use `Save As` to export to a new location
+6. **Manage media** - Switch to the Media tab to browse, upload, or insert images
+7. **Commit & push** - Switch to the Git tab, write a commit message, and push
+8. **Preview** - Switch to the Preview tab and start the dev server
 
 ## Keyboard Shortcuts
 

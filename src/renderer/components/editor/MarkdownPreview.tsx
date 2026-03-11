@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -31,19 +31,32 @@ function handleLinkClick(e: React.MouseEvent<HTMLElement>) {
 
 export default function MarkdownPreview() {
   const editorContent = useEditorStore((s) => s.editorContent);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Sanitize content to prevent XSS, then let ReactMarkdown handle
-  // both Markdown syntax and embedded HTML (via rehype-raw)
-  const sanitized = DOMPurify.sanitize(editorContent, {
-    // Allow all safe HTML tags that might appear in content
-    ADD_TAGS: ["iframe"],
-    ADD_ATTR: ["target", "rel"],
+  // Sanitize the rendered DOM output, not the raw markdown source.
+  // DOMPurify on the raw string was stripping HTML attributes (class, style)
+  // and restructuring tags before the markdown parser could process them.
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const html = containerRef.current.innerHTML;
+    const clean = DOMPurify.sanitize(html, {
+      ADD_TAGS: ["iframe"],
+      ADD_ATTR: ["target", "rel", "class", "style"],
+    });
+    // Only rewrite if sanitizer actually changed something (avoid loop)
+    if (clean !== html) {
+      containerRef.current.innerHTML = clean;
+    }
   });
 
   return (
-    <div className={proseClasses} onClick={handleLinkClick}>
+    <div
+      ref={containerRef}
+      className={proseClasses}
+      onClick={handleLinkClick}
+    >
       <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-        {sanitized}
+        {editorContent}
       </ReactMarkdown>
     </div>
   );

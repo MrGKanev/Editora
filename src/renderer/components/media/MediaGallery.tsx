@@ -3,12 +3,15 @@ import { useProjectStore } from "../../store/project-store";
 import { useEditorStore } from "../../store/editor-store";
 import { MediaFile } from "../../../shared/types";
 import { formatFileSize } from "../../utils/markdown";
+import ImageUploadDialog from "./ImageUploadDialog";
 
 export default function MediaGallery() {
   const project = useProjectStore((s) => s.currentProject);
   const { currentFile, setEditorContent, editorContent } = useEditorStore();
   const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadPaths, setUploadPaths] = useState<string[]>([]);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
 
   const loadMedia = async () => {
     if (!project) return;
@@ -29,16 +32,15 @@ export default function MediaGallery() {
 
   const handleUpload = async () => {
     if (!project) return;
-    // Trigger file dialog via IPC would be needed; for now we use a basic approach
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
     input.multiple = true;
-    input.onchange = async () => {
+    input.onchange = () => {
       if (!input.files) return;
       const paths = Array.from(input.files).map((f) => (f as File & { path: string }).path);
-      await window.editora.uploadMedia(project.path, paths);
-      loadMedia();
+      setUploadPaths(paths);
+      setShowUploadDialog(true);
     };
     input.click();
   };
@@ -113,6 +115,18 @@ export default function MediaGallery() {
             </div>
           ))}
         </div>
+      )}
+      {project && (
+        <ImageUploadDialog
+          isOpen={showUploadDialog}
+          filePaths={uploadPaths}
+          projectPath={project.path}
+          onComplete={() => {
+            setShowUploadDialog(false);
+            loadMedia();
+          }}
+          onCancel={() => setShowUploadDialog(false)}
+        />
       )}
     </div>
   );

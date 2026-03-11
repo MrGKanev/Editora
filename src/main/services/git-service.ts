@@ -74,4 +74,15 @@ export class GitService {
     await git.checkout(branch);
     return { success: true };
   }
+
+  async getRemoteUrl(projectPath: string): Promise<string | null> {
+    const git = this.getGit(projectPath);
+    try {
+      const remotes = await git.getRemotes(true);
+      const origin = remotes.find((r) => r.name === "origin");
+      return origin?.refs?.push || origin?.refs?.fetch || null;
+    } catch {
+      return null;
+    }
+  }
 }

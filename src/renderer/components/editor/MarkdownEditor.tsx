@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState, useEffect } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { html } from "@codemirror/lang-html";
@@ -6,7 +6,12 @@ import { languages } from "@codemirror/language-data";
 import { EditorView } from "@codemirror/view";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
+import { search, openSearchPanel, searchKeymap } from "@codemirror/search";
+import { keymap } from "@codemirror/view";
 import { useEditorStore } from "../../store/editor-store";
+import { useProjectStore } from "../../store/project-store";
+import TableEditorModal, { parseMarkdownTable } from "./TableEditorModal";
+import ImageUploadDialog from "../media/ImageUploadDialog";
 
 const editorTheme = EditorView.theme({
   "&": {
@@ -38,6 +43,37 @@ const editorTheme = EditorView.theme({
   ".cm-activeLineGutter": {
     backgroundColor: "transparent",
     color: "#89b4fa",
+  },
+  // Search panel styling
+  ".cm-panels": {
+    backgroundColor: "#242435",
+    borderBottom: "1px solid #313146",
+  },
+  ".cm-search": {
+    fontSize: "13px",
+  },
+  ".cm-search label": {
+    color: "#cdd6f4",
+  },
+  ".cm-search input, .cm-search button": {
+    backgroundColor: "#1e1e2e",
+    color: "#cdd6f4",
+    border: "1px solid #313146",
+    borderRadius: "4px",
+    padding: "2px 6px",
+  },
+  ".cm-search button": {
+    cursor: "pointer",
+  },
+  ".cm-search button:hover": {
+    backgroundColor: "#313146",
+  },
+  ".cm-searchMatch": {
+    backgroundColor: "rgba(249, 226, 175, 0.25)",
+    borderRadius: "2px",
+  },
+  ".cm-searchMatch-selected": {
+    backgroundColor: "rgba(137, 180, 250, 0.35)",
   },
 });
 
@@ -167,10 +203,95 @@ function FloatingToolbar({
   );
 }
 
+const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "svg", "webp", "avif", "ico"]);
+
 export default function MarkdownEditor() {
   const { editorContent, setEditorContent } = useEditorStore();
+  const project = useProjectStore((s) => s.currentProject);
   const cmRef = useRef<ReactCodeMirrorRef>(null);
   const [toolbarPos, setToolbarPos] = useState<{ x: number; y: number } | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [showTableModal, setShowTableModal] = useState(false);
+  const [tableEditMarkdown, setTableEditMarkdown] = useState<string | undefined>();
+  const [tableEditRange, setTableEditRange] = useState<{ from: number; to: number } | null>(null);
+  const [dropUploadPaths, setDropUploadPaths] = useState<string[]>([]);
+  const [showDropUpload, setShowDropUpload] = useState(false);
+
+  // Detect if cursor is inside a markdown table
+  const detectTableAtCursor = useCallback(() => {
+    const view = cmRef.current?.view;
+    if (!view) return null;
+
+    const pos = view.state.selection.main.head;
+    const doc = view.state.doc;
+    const lineNum = doc.lineAt(pos).number;
+
+    // Walk up and down from cursor to find table boundaries
+    let startLine = lineNum;
+    let endLine = lineNum;
+
+    // Check if current line looks like a table line
+    const isTableLine = (n: number) => {
+      if (n < 1 || n > doc.lines) return false;
+      const text = doc.line(n).text.trim();
+      return text.startsWith("|") && text.endsWith("|");
+    };
+
+    if (!isTableLine(lineNum)) return null;
+
+    while (startLine > 1 && isTableLine(startLine - 1)) startLine--;
+    while (endLine < doc.lines && isTableLine(endLine + 1)) endLine++;
+
+    const lines: string[] = [];
+    for (let i = startLine; i <= endLine; i++) {
+      lines.push(doc.line(i).text);
+    }
+
+    const tableMarkdown = lines.join("\n");
+    if (!parseMarkdownTable(tableMarkdown)) return null;
+
+    return {
+      markdown: tableMarkdown,
+      from: doc.line(startLine).from,
+      to: doc.line(endLine).to,
+    };
+  }, []);
+
+  const openTableEditor = useCallback(
+    (existingTable?: { markdown: string; from: number; to: number }) => {
+      if (existingTable) {
+        setTableEditMarkdown(existingTable.markdown);
+        setTableEditRange({ from: existingTable.from, to: existingTable.to });
+      } else {
+        setTableEditMarkdown(undefined);
+        setTableEditRange(null);
+      }
+      setShowTableModal(true);
+    },
+    []
+  );
+
+  const handleTableInsert = useCallback(
+    (md: string) => {
+      const view = cmRef.current?.view;
+      if (!view) return;
+
+      if (tableEditRange) {
+        // Replace existing table
+        view.dispatch({
+          changes: { from: tableEditRange.from, to: tableEditRange.to, insert: md },
+        });
+      } else {
+        // Insert at cursor
+        const pos = view.state.selection.main.head;
+        view.dispatch({
+          changes: { from: pos, insert: "\n" + md + "\n" },
+        });
+      }
+      view.focus();
+    },
+    [tableEditRange]
+  );
 
   const onChange = useCallback(
     (value: string) => {
@@ -232,6 +353,83 @@ export default function MarkdownEditor() {
     []
   );
 
+  // Open search panel from menu event
+  const openSearch = useCallback(() => {
+    const view = cmRef.current?.view;
+    if (view) openSearchPanel(view);
+  }, []);
+
+  // Listen for menu find events
+  React.useEffect(() => {
+    const cleanups = [
+      window.editora.onMenuEvent("menu:find", openSearch),
+      window.editora.onMenuEvent("menu:find-replace", openSearch),
+    ];
+    return () => cleanups.forEach((fn) => fn());
+  }, [openSearch]);
+
+  // Drag & drop media files
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+
+      if (!project) return;
+
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length === 0) return;
+
+      const filePaths = files
+        .map((f) => (f as File & { path: string }).path)
+        .filter(Boolean);
+      if (filePaths.length === 0) return;
+
+      // Show optimization dialog
+      setDropUploadPaths(filePaths);
+      setShowDropUpload(true);
+    },
+    [project]
+  );
+
+  const handleDropUploadComplete = useCallback(
+    (results: Array<{ name: string; relativePath: string }>) => {
+      setShowDropUpload(false);
+      const view = cmRef.current?.view;
+      if (!view) return;
+
+      const insertions = results.map((uploaded) => {
+        const ext = uploaded.name.split(".").pop()?.toLowerCase() || "";
+        if (IMAGE_EXTENSIONS.has(ext)) {
+          return `![${uploaded.name}](${uploaded.relativePath})`;
+        }
+        return `[${uploaded.name}](${uploaded.relativePath})`;
+      });
+
+      if (insertions.length > 0) {
+        const pos = view.state.selection.main.head;
+        const text = insertions.join("\n") + "\n";
+        view.dispatch({
+          changes: { from: pos, insert: text },
+        });
+        view.focus();
+      }
+    },
+    []
+  );
+
   const extensions = useMemo(
     () => [
       markdown({ codeLanguages: languages, htmlTagLanguage: html() }),
@@ -239,12 +437,26 @@ export default function MarkdownEditor() {
       editorTheme,
       syntaxHighlighting(highlightStyle),
       selectionListener,
+      search(),
+      keymap.of(searchKeymap),
     ],
     [selectionListener]
   );
 
   return (
-    <div className="h-full relative">
+    <div
+      className={`h-full relative ${isDragOver ? "ring-2 ring-inset ring-editor-accent/50" : ""}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {isDragOver && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-editor-bg/80 pointer-events-none">
+          <div className="px-6 py-3 rounded-lg bg-editor-surface border text-sm text-editor-accent">
+            Drop to insert media
+          </div>
+        </div>
+      )}
       <CodeMirror
         ref={cmRef}
         value={editorContent}
@@ -261,6 +473,39 @@ export default function MarkdownEditor() {
         className="h-full"
       />
       <FloatingToolbar pos={toolbarPos} onAction={handleToolbarAction} />
+
+      {/* Table insert button (bottom-right corner) */}
+      <div className="absolute bottom-3 right-3 flex items-center gap-1.5 z-30">
+        <button
+          onClick={() => {
+            const table = detectTableAtCursor();
+            openTableEditor(table || undefined);
+          }}
+          title={detectTableAtCursor() ? "Edit table at cursor" : "Insert table"}
+          className="px-2.5 py-1.5 text-xs bg-editor-surface border rounded-lg shadow
+                     text-editor-muted hover:text-editor-text hover:bg-editor-border/50
+                     transition-colors"
+        >
+          {"\u2637"} Table
+        </button>
+      </div>
+
+      <TableEditorModal
+        isOpen={showTableModal}
+        onClose={() => setShowTableModal(false)}
+        onInsert={handleTableInsert}
+        initialMarkdown={tableEditMarkdown}
+      />
+
+      {project && (
+        <ImageUploadDialog
+          isOpen={showDropUpload}
+          filePaths={dropUploadPaths}
+          projectPath={project.path}
+          onComplete={handleDropUploadComplete}
+          onCancel={() => setShowDropUpload(false)}
+        />
+      )}
     </div>
   );
 }

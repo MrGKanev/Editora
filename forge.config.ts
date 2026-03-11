@@ -12,6 +12,7 @@ const config: ForgeConfig = {
     name: "Editora",
     executableName: "editora",
     asar: true,
+    icon: "./assets/icons/icon",
   },
   rebuildConfig: {},
   makers: [

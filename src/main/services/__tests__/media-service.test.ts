@@ -142,7 +142,7 @@ describe("MediaService", () => {
       await fs.mkdir(publicDir, { recursive: true });
       await fs.writeFile(path.join(publicDir, "logo.png"), "data");
 
-      // Pass "public" as a content dir too — should not duplicate
+      // Pass "public" as a content dir too - should not duplicate
       const files = await service.listMedia(tmpDir, ["public"]);
       expect(files.length).toBe(1);
     });

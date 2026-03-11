@@ -28,6 +28,10 @@ const api = {
   ) => ipcRenderer.invoke(IPC.CONTENT_CREATE, collectionPath, fileName, content),
   deleteContent: (filePath: string) =>
     ipcRenderer.invoke(IPC.CONTENT_DELETE, filePath),
+  renameContent: (oldPath: string, newName: string) =>
+    ipcRenderer.invoke(IPC.CONTENT_RENAME, oldPath, newName),
+  duplicateContent: (filePath: string) =>
+    ipcRenderer.invoke(IPC.CONTENT_DUPLICATE, filePath),
 
   // Media
   listMedia: (projectPath: string, ssgId?: string) =>
@@ -38,6 +42,13 @@ const api = {
     ipcRenderer.invoke(IPC.MEDIA_DELETE, filePath),
   getMediaPath: (filePath: string) =>
     ipcRenderer.invoke(IPC.MEDIA_GET_PATH, filePath),
+  getImageInfo: (filePaths: string[]) =>
+    ipcRenderer.invoke(IPC.MEDIA_IMAGE_INFO, filePaths),
+  optimizeUpload: (
+    projectPath: string,
+    filePaths: string[],
+    options: { maxWidth: number; quality: number; convertToWebP: boolean } | null
+  ) => ipcRenderer.invoke(IPC.MEDIA_OPTIMIZE_UPLOAD, projectPath, filePaths, options),
 
   // Git
   gitStatus: (projectPath: string) =>
@@ -52,6 +63,12 @@ const api = {
     ipcRenderer.invoke(IPC.GIT_BRANCHES, projectPath),
   gitCheckout: (projectPath: string, branch: string) =>
     ipcRenderer.invoke(IPC.GIT_CHECKOUT, projectPath, branch),
+  gitRemoteUrl: (projectPath: string) =>
+    ipcRenderer.invoke(IPC.GIT_REMOTE_URL, projectPath),
+
+  // Links
+  checkLinks: (content: string, filePath: string, projectPath: string) =>
+    ipcRenderer.invoke(IPC.LINKS_CHECK, { content, filePath, projectPath }),
 
   // Dev Server
   serverStart: (projectPath: string, ssgId?: string) =>
