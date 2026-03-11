@@ -33,7 +33,7 @@ export function createAppMenu(): Menu {
             if (!win) return;
             const result = await dialog.showOpenDialog(win, {
               properties: ["openDirectory"],
-              title: "Open Astro Project",
+              title: "Open Project",
             });
             if (!result.canceled && result.filePaths[0]) {
               win.webContents.send("menu:open-project", result.filePaths[0]);

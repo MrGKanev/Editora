@@ -4,14 +4,16 @@ import path from "node:path";
 import matter from "gray-matter";
 import { IPC, ContentFile, ContentCollection } from "../../shared/types";
 import { CollectionDiscovery } from "../services/collection-discovery";
+import { SSG_DEFINITIONS } from "../../shared/ssg";
 
 const discovery = new CollectionDiscovery();
 
 export function registerContentHandlers() {
   ipcMain.handle(
     IPC.COLLECTION_LIST,
-    async (_event, projectPath: string): Promise<ContentCollection[]> => {
-      return discovery.discoverCollections(projectPath);
+    async (_event, projectPath: string, ssgId?: string): Promise<ContentCollection[]> => {
+      const ssg = ssgId ? SSG_DEFINITIONS.find((s) => s.id === ssgId) : undefined;
+      return discovery.discoverCollections(projectPath, ssg?.contentDirs);
     }
   );
 

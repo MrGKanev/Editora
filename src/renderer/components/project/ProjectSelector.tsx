@@ -29,7 +29,7 @@ export default function ProjectSelector() {
         <div className="text-center">
           <h1 className="text-4xl font-bold text-editor-accent">Editora</h1>
           <p className="text-editor-muted mt-2">
-            Content editor for Astro websites
+            Content editor for static websites
           </p>
         </div>
 
@@ -48,7 +48,7 @@ export default function ProjectSelector() {
             className="w-full px-4 py-3 bg-editor-accent text-editor-bg rounded-lg font-medium
                        hover:bg-editor-accent/90 disabled:opacity-50 transition-colors"
           >
-            {isLoading ? "Opening..." : "Open Astro Project"}
+            {isLoading ? "Opening..." : "Open Project"}
           </button>
 
           <button

@@ -5,12 +5,12 @@ import { DevServerService } from "../services/dev-server";
 const devServer = new DevServerService();
 
 export function registerServerHandlers() {
-  ipcMain.handle(IPC.SERVER_START, async (_event, projectPath: string) => {
+  ipcMain.handle(IPC.SERVER_START, async (_event, projectPath: string, ssgId?: string) => {
     const win = BrowserWindow.getFocusedWindow();
     const onLog = (log: string) => {
       win?.webContents.send(IPC.SERVER_LOG, log);
     };
-    return devServer.start(projectPath, onLog);
+    return devServer.start(projectPath, onLog, ssgId);
   });
 
   ipcMain.handle(IPC.SERVER_STOP, async () => {

@@ -1,7 +1,5 @@
 import { ipcMain, dialog, BrowserWindow } from "electron";
-import path from "node:path";
-import fs from "node:fs/promises";
-import { IPC, Project } from "../../shared/types";
+import { IPC } from "../../shared/types";
 import { ProjectManager } from "../services/project-manager";
 
 const projectManager = new ProjectManager();
@@ -13,15 +11,15 @@ export function registerProjectHandlers() {
 
     const result = await dialog.showOpenDialog(win, {
       properties: ["openDirectory"],
-      title: "Open Astro Project",
+      title: "Open Project",
     });
 
     if (result.canceled || !result.filePaths[0]) return null;
 
     const projectPath = result.filePaths[0];
-    const isValid = await projectManager.validateAstroProject(projectPath);
+    const isValid = await projectManager.validateProject(projectPath);
     if (!isValid) {
-      return { error: "Not a valid Astro project. No astro dependency found in package.json." };
+      return { error: "No supported static site project detected. Editora supports Astro, Hugo, Jekyll, Eleventy, Next.js, Nuxt, Gatsby, VitePress, and other markdown-based projects." };
     }
 
     const project = await projectManager.openProject(projectPath);
@@ -45,6 +43,6 @@ export function registerProjectHandlers() {
   });
 
   ipcMain.handle(IPC.PROJECT_VALIDATE, async (_event, projectPath: string) => {
-    return projectManager.validateAstroProject(projectPath);
+    return projectManager.validateProject(projectPath);
   });
 }

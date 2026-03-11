@@ -51,7 +51,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     try {
       const isValid = await window.editora.validateProject(path);
       if (!isValid) {
-        set({ error: "Not a valid Astro project", isLoading: false });
+        set({ error: "No supported static site project detected.", isLoading: false });
         return;
       }
       // Re-use openProject flow but with specific path
@@ -72,7 +72,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const project = get().currentProject;
     if (!project) return;
     try {
-      const collections = await window.editora.listCollections(project.path);
+      const collections = await window.editora.listCollections(project.path, project.ssgId);
       set({ collections });
     } catch (err) {
       console.error("Failed to load collections:", err);

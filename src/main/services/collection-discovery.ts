@@ -6,12 +6,15 @@ import { ContentCollection, ContentFile, SchemaField } from "../../shared/types"
 const CONTENT_EXTENSIONS = [".md", ".mdx"];
 
 export class CollectionDiscovery {
-  async discoverCollections(projectPath: string): Promise<ContentCollection[]> {
-    // Astro 5+ uses src/content/ by default, scan any content directories found
-    const contentDirs = [
-      path.join(projectPath, "src", "content"),
-      path.join(projectPath, "content"),
-    ];
+  async discoverCollections(
+    projectPath: string,
+    ssgContentDirs?: string[]
+  ): Promise<ContentCollection[]> {
+    // Use SSG-specific dirs if provided, otherwise scan common locations
+    const dirNames = ssgContentDirs && ssgContentDirs.length > 0
+      ? ssgContentDirs
+      : ["src/content", "content", "_posts", "posts", "blog", "docs", "source/_posts"];
+    const contentDirs = dirNames.map((d) => path.join(projectPath, d));
 
     const collections: ContentCollection[] = [];
 
@@ -24,18 +27,36 @@ export class CollectionDiscovery {
 
       const entries = await fs.readdir(contentDir, { withFileTypes: true });
 
+      // Check if this directory has markdown files directly (flat collection like _posts)
+      const hasDirectFiles = entries.some(
+        (e) => !e.isDirectory() && CONTENT_EXTENSIONS.includes(path.extname(e.name))
+      );
+
+      if (hasDirectFiles) {
+        const dirName = path.basename(contentDir).replace(/^_/, "");
+        if (!collections.some((c) => c.name === dirName)) {
+          const files = await this.getCollectionFiles(contentDir);
+          const schema = files.length > 0 ? this.inferSchema(files) : undefined;
+          collections.push({
+            name: dirName,
+            path: contentDir,
+            files,
+            schema,
+          });
+        }
+      }
+
+      // Check subdirectories as separate collections
       for (const entry of entries) {
         if (!entry.isDirectory()) continue;
-        // Skip config files and hidden dirs
-        if (entry.name.startsWith(".") || entry.name.startsWith("_")) continue;
-        // Avoid duplicates if both dirs have same collection name
+        if (entry.name.startsWith(".")) continue;
         if (collections.some((c) => c.name === entry.name)) continue;
 
         const collectionPath = path.join(contentDir, entry.name);
         const files = await this.getCollectionFiles(collectionPath);
+        if (files.length === 0) continue;
 
-        // Infer schema from first file's frontmatter
-        const schema = files.length > 0 ? this.inferSchema(files) : undefined;
+        const schema = this.inferSchema(files);
 
         collections.push({
           name: entry.name,

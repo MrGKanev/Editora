@@ -21,6 +21,10 @@ export default function StatusBar() {
           {project?.name}
         </button>
 
+        {project?.ssgName && (
+          <span className="text-editor-accent/70">{project.ssgName}</span>
+        )}
+
         {/* Git branch */}
         {gitStatus?.isRepo && (
           <span className="flex items-center gap-1">

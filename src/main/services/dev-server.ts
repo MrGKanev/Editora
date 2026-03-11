@@ -1,5 +1,6 @@
 import { ChildProcess, spawn } from "node:child_process";
-import { DevServerState, DevServerStatus } from "../../shared/types";
+import { DevServerState } from "../../shared/types";
+import { SSG_DEFINITIONS, SSGDefinition } from "../../shared/ssg";
 
 export class DevServerService {
   private process: ChildProcess | null = null;
@@ -7,20 +8,37 @@ export class DevServerService {
 
   async start(
     projectPath: string,
-    onLog: (log: string) => void
+    onLog: (log: string) => void,
+    ssgId?: string
   ): Promise<DevServerState> {
     if (this.process) {
       await this.stop();
     }
 
+    const ssg = ssgId ? SSG_DEFINITIONS.find((s) => s.id === ssgId) : undefined;
+    const devCommand = ssg?.devCommand;
+
+    if (!devCommand || devCommand.length === 0) {
+      // Try to detect from package.json scripts
+      this.state = { status: "error", error: "No dev server command configured for this project type." };
+      onLog("No dev command found. Try running your dev server manually.");
+      return this.state;
+    }
+
+    const urlPattern = ssg?.urlPattern ?? /localhost:(\d+)/;
+
     this.state = { status: "starting" };
 
     return new Promise((resolve) => {
-      // Use npx to run astro dev
       const isWin = process.platform === "win32";
       const cmd = isWin ? "npx.cmd" : "npx";
 
-      this.process = spawn(cmd, ["astro", "dev"], {
+      // For non-npm tools (Hugo, Jekyll), use the command directly
+      const useNpx = ssg ? ssg.packages.length > 0 : true;
+      const finalCmd = useNpx ? cmd : devCommand[0];
+      const finalArgs = useNpx ? devCommand : devCommand.slice(1);
+
+      this.process = spawn(finalCmd, finalArgs, {
         cwd: projectPath,
         shell: true,
         env: { ...process.env, FORCE_COLOR: "0" },
@@ -30,8 +48,7 @@ export class DevServerService {
         const text = data.toString();
         onLog(text);
 
-        // Detect when server is ready
-        const urlMatch = text.match(/localhost:(\d+)/);
+        const urlMatch = text.match(urlPattern);
         if (urlMatch) {
           const port = parseInt(urlMatch[1], 10);
           this.state = {
@@ -59,7 +76,6 @@ export class DevServerService {
         this.process = null;
       });
 
-      // Timeout: if server doesn't start in 30s, resolve with current state
       setTimeout(() => {
         if (this.state.status === "starting") {
           this.state = { status: "error", error: "Server start timeout" };

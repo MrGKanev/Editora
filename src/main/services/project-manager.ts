@@ -3,41 +3,76 @@ import path from "node:path";
 import Store from "electron-store";
 import simpleGit from "simple-git";
 import { Project } from "../../shared/types";
+import { SSG_DEFINITIONS, DetectedSSG, SSGDefinition } from "../../shared/ssg";
 
 const store = new Store<{ recentProjects: Project[] }>({
   defaults: { recentProjects: [] },
 });
 
 export class ProjectManager {
-  async validateAstroProject(projectPath: string): Promise<boolean> {
-    // Primary check: astro dependency in package.json
+  async detectSSG(projectPath: string): Promise<DetectedSSG | null> {
+    // 1. Check package.json dependencies
+    let deps: Record<string, string> = {};
     try {
       const pkgPath = path.join(projectPath, "package.json");
       const pkgRaw = await fs.readFile(pkgPath, "utf-8");
       const pkg = JSON.parse(pkgRaw);
-      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
-      if (deps["astro"]) return true;
+      deps = { ...pkg.dependencies, ...pkg.devDependencies };
     } catch {
-      // No package.json or invalid JSON
+      // No package.json
     }
 
-    // Fallback: check for astro.config.* (older projects or monorepos)
-    const configNames = [
-      "astro.config.mjs",
-      "astro.config.ts",
-      "astro.config.js",
-      "astro.config.cjs",
-    ];
-
-    for (const name of configNames) {
-      try {
-        await fs.access(path.join(projectPath, name));
-        return true;
-      } catch {
-        // Continue checking
+    for (const ssg of SSG_DEFINITIONS) {
+      if (ssg.packages.length > 0 && ssg.packages.some((pkg) => deps[pkg])) {
+        return { definition: ssg, confidence: "high" };
       }
     }
-    return false;
+
+    // 2. Check config files
+    for (const ssg of SSG_DEFINITIONS) {
+      for (const configFile of ssg.configFiles) {
+        try {
+          await fs.access(path.join(projectPath, configFile));
+          return { definition: ssg, confidence: "medium" };
+        } catch {
+          // Continue
+        }
+      }
+    }
+
+    // 3. Check for content directories with markdown files (generic fallback)
+    const commonContentDirs = ["content", "src/content", "_posts", "posts", "blog", "docs"];
+    for (const dir of commonContentDirs) {
+      try {
+        const fullPath = path.join(projectPath, dir);
+        await fs.access(fullPath);
+        const entries = await fs.readdir(fullPath);
+        const hasMarkdown = entries.some((e) => e.endsWith(".md") || e.endsWith(".mdx"));
+        if (hasMarkdown) {
+          return {
+            definition: {
+              id: "generic",
+              name: "Static Site",
+              packages: [],
+              configFiles: [],
+              contentDirs: [dir],
+              devCommand: [],
+              urlPattern: /localhost:(\d+)/,
+            },
+            confidence: "low",
+          };
+        }
+      } catch {
+        // Continue
+      }
+    }
+
+    return null;
+  }
+
+  async validateProject(projectPath: string): Promise<boolean> {
+    const detected = await this.detectSSG(projectPath);
+    return detected !== null;
   }
 
   async openProject(projectPath: string): Promise<Project> {
@@ -55,12 +90,16 @@ export class ProjectManager {
       }
     }
 
+    const detected = await this.detectSSG(projectPath);
+
     const project: Project = {
       path: projectPath,
       name,
       lastOpened: Date.now(),
       isGitRepo,
       gitRemote,
+      ssgId: detected?.definition.id,
+      ssgName: detected?.definition.name,
     };
 
     this.addToRecent(project);
@@ -75,6 +114,11 @@ export class ProjectManager {
 
   getRecentProjects(): Project[] {
     return store.get("recentProjects", []);
+  }
+
+  getSSGDefinition(ssgId: string): SSGDefinition | undefined {
+    if (ssgId === "generic") return undefined;
+    return SSG_DEFINITIONS.find((s) => s.id === ssgId);
   }
 
   private addToRecent(project: Project) {

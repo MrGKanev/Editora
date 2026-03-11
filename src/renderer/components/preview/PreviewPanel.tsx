@@ -2,6 +2,7 @@ import React from "react";
 import { useProjectStore } from "../../store/project-store";
 import { useUIStore } from "../../store/ui-store";
 
+
 export default function PreviewPanel() {
   const project = useProjectStore((s) => s.currentProject);
   const { devServer, setDevServer, addServerLog, clearServerLogs, toggleTerminal, showTerminal } =
@@ -18,7 +19,7 @@ export default function PreviewPanel() {
     });
 
     try {
-      const state = await window.editora.serverStart(project.path);
+      const state = await window.editora.serverStart(project.path, project.ssgId);
       setDevServer(state);
     } catch (err) {
       setDevServer({ status: "error", error: (err as Error).message });

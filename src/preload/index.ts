@@ -11,8 +11,8 @@ const api = {
     ipcRenderer.invoke(IPC.PROJECT_VALIDATE, path),
 
   // Collections
-  listCollections: (projectPath: string) =>
-    ipcRenderer.invoke(IPC.COLLECTION_LIST, projectPath),
+  listCollections: (projectPath: string, ssgId?: string) =>
+    ipcRenderer.invoke(IPC.COLLECTION_LIST, projectPath, ssgId),
   getCollectionFiles: (collectionPath: string) =>
     ipcRenderer.invoke(IPC.COLLECTION_GET_FILES, collectionPath),
 
@@ -54,8 +54,8 @@ const api = {
     ipcRenderer.invoke(IPC.GIT_CHECKOUT, projectPath, branch),
 
   // Dev Server
-  serverStart: (projectPath: string) =>
-    ipcRenderer.invoke(IPC.SERVER_START, projectPath),
+  serverStart: (projectPath: string, ssgId?: string) =>
+    ipcRenderer.invoke(IPC.SERVER_START, projectPath, ssgId),
   serverStop: () => ipcRenderer.invoke(IPC.SERVER_STOP),
   serverStatus: () => ipcRenderer.invoke(IPC.SERVER_STATUS),
   onServerLog: (callback: (log: string) => void) => {
