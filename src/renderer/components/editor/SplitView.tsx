@@ -8,7 +8,7 @@ interface SplitViewProps {
 
 export default function SplitView({ showPreview }: SplitViewProps) {
   return (
-    <div className="flex-1 flex overflow-hidden">
+    <div className="flex-1 flex overflow-hidden bg-editor-bg">
       {/* Editor pane */}
       <div className={`${showPreview ? "w-1/2" : "w-full"} overflow-hidden`}>
         <MarkdownEditor />
@@ -18,7 +18,7 @@ export default function SplitView({ showPreview }: SplitViewProps) {
       {showPreview && (
         <>
           <div className="w-px bg-editor-border" />
-          <div className="w-1/2 overflow-y-auto">
+          <div className="w-1/2 overflow-y-auto bg-editor-bg">
             <MarkdownPreview />
           </div>
         </>
