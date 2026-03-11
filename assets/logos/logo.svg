@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Background -->
+  <rect x="16" y="16" width="480" height="480" rx="80" fill="#1e1e2e"/>
+  <rect x="16" y="16" width="480" height="480" rx="80" stroke="#313146" stroke-width="4"/>
+
+  <!-- Minimal geometric "E" -->
+  <!-- Built from a broken circle/arc + horizontal lines -->
+
+  <!-- Arc (left side of E) -->
+  <path d="M280,128 A128,128 0 0,0 280,384"
+        stroke="#89b4fa" stroke-width="28" stroke-linecap="round" fill="none"/>
+
+  <!-- Top horizontal -->
+  <line x1="280" y1="128" x2="360" y2="128"
+        stroke="#89b4fa" stroke-width="28" stroke-linecap="round"/>
+
+  <!-- Middle horizontal (accent) -->
+  <line x1="220" y1="256" x2="340" y2="256"
+        stroke="#cdd6f4" stroke-width="20" stroke-linecap="round"/>
+
+  <!-- Bottom horizontal -->
+  <line x1="280" y1="384" x2="360" y2="384"
+        stroke="#89b4fa" stroke-width="28" stroke-linecap="round"/>
+
+  <!-- Cursor blink accent -->
+  <rect x="356" y="240" width="4" height="32" rx="2" fill="#f9e2af">
+    <animate attributeName="opacity" values="1;0;1" dur="1.2s" repeatCount="indefinite"/>
+  </rect>
+</svg>
