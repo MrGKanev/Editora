@@ -1,0 +1,71 @@
+import { contextBridge, ipcRenderer } from "electron";
+import { IPC } from "../shared/types";
+
+const api = {
+  // Project
+  openProject: () => ipcRenderer.invoke(IPC.PROJECT_OPEN),
+  cloneProject: (url: string, dest: string) =>
+    ipcRenderer.invoke(IPC.PROJECT_CLONE, url, dest),
+  getRecentProjects: () => ipcRenderer.invoke(IPC.PROJECT_GET_RECENT),
+  validateProject: (path: string) =>
+    ipcRenderer.invoke(IPC.PROJECT_VALIDATE, path),
+
+  // Collections
+  listCollections: (projectPath: string) =>
+    ipcRenderer.invoke(IPC.COLLECTION_LIST, projectPath),
+  getCollectionFiles: (collectionPath: string) =>
+    ipcRenderer.invoke(IPC.COLLECTION_GET_FILES, collectionPath),
+
+  // Content
+  readContent: (filePath: string) =>
+    ipcRenderer.invoke(IPC.CONTENT_READ, filePath),
+  writeContent: (filePath: string, content: string) =>
+    ipcRenderer.invoke(IPC.CONTENT_WRITE, filePath, content),
+  createContent: (
+    collectionPath: string,
+    fileName: string,
+    content: string
+  ) => ipcRenderer.invoke(IPC.CONTENT_CREATE, collectionPath, fileName, content),
+  deleteContent: (filePath: string) =>
+    ipcRenderer.invoke(IPC.CONTENT_DELETE, filePath),
+
+  // Media
+  listMedia: (projectPath: string) =>
+    ipcRenderer.invoke(IPC.MEDIA_LIST, projectPath),
+  uploadMedia: (projectPath: string, filePaths: string[]) =>
+    ipcRenderer.invoke(IPC.MEDIA_UPLOAD, projectPath, filePaths),
+  deleteMedia: (filePath: string) =>
+    ipcRenderer.invoke(IPC.MEDIA_DELETE, filePath),
+  getMediaPath: (filePath: string) =>
+    ipcRenderer.invoke(IPC.MEDIA_GET_PATH, filePath),
+
+  // Git
+  gitStatus: (projectPath: string) =>
+    ipcRenderer.invoke(IPC.GIT_STATUS, projectPath),
+  gitCommit: (projectPath: string, message: string) =>
+    ipcRenderer.invoke(IPC.GIT_COMMIT, projectPath, message),
+  gitPush: (projectPath: string) =>
+    ipcRenderer.invoke(IPC.GIT_PUSH, projectPath),
+  gitPull: (projectPath: string) =>
+    ipcRenderer.invoke(IPC.GIT_PULL, projectPath),
+  gitBranches: (projectPath: string) =>
+    ipcRenderer.invoke(IPC.GIT_BRANCHES, projectPath),
+  gitCheckout: (projectPath: string, branch: string) =>
+    ipcRenderer.invoke(IPC.GIT_CHECKOUT, projectPath, branch),
+
+  // Dev Server
+  serverStart: (projectPath: string) =>
+    ipcRenderer.invoke(IPC.SERVER_START, projectPath),
+  serverStop: () => ipcRenderer.invoke(IPC.SERVER_STOP),
+  serverStatus: () => ipcRenderer.invoke(IPC.SERVER_STATUS),
+  onServerLog: (callback: (log: string) => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, log: string) =>
+      callback(log);
+    ipcRenderer.on(IPC.SERVER_LOG, handler);
+    return () => ipcRenderer.removeListener(IPC.SERVER_LOG, handler);
+  },
+};
+
+contextBridge.exposeInMainWorld("editora", api);
+
+export type EditoraAPI = typeof api;
