@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useProjectStore } from "../../store/project-store";
 import { useEditorStore } from "../../store/editor-store";
 import { MediaFile } from "../../../shared/types";
+import { formatFileSize } from "../../utils/markdown";
 
 export default function MediaGallery() {
   const project = useProjectStore((s) => s.currentProject);
@@ -35,7 +36,7 @@ export default function MediaGallery() {
     input.multiple = true;
     input.onchange = async () => {
       if (!input.files) return;
-      const paths = Array.from(input.files).map((f) => f.path);
+      const paths = Array.from(input.files).map((f) => (f as File & { path: string }).path);
       await window.editora.uploadMedia(project.path, paths);
       loadMedia();
     };
@@ -52,12 +53,6 @@ export default function MediaGallery() {
     if (!confirm(`Delete ${file.name}?`)) return;
     await window.editora.deleteMedia(file.path);
     loadMedia();
-  };
-
-  const formatSize = (bytes: number): string => {
-    if (bytes < 1024) return `${bytes}B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
   };
 
   return (
@@ -91,7 +86,7 @@ export default function MediaGallery() {
               <div className="p-1.5">
                 <p className="text-xs truncate">{file.name}</p>
                 <p className="text-xs text-editor-muted">
-                  {formatSize(file.size)}
+                  {formatFileSize(file.size)}
                 </p>
               </div>
 

@@ -1,14 +1,28 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@source "../../renderer/**/*.{html,tsx,ts}";
+
+@theme {
+  --color-editor-bg: #1e1e2e;
+  --color-editor-surface: #242435;
+  --color-editor-border: #313146;
+  --color-editor-text: #cdd6f4;
+  --color-editor-muted: #6c7086;
+  --color-editor-accent: #89b4fa;
+  --color-editor-success: #a6e3a1;
+  --color-editor-warning: #f9e2af;
+  --color-editor-danger: #f38ba8;
+}
 
 @layer base {
   * {
-    @apply border-editor-border;
+    border-color: var(--color-editor-border);
   }
 
   body {
-    @apply bg-editor-bg text-editor-text;
+    background-color: var(--color-editor-bg);
+    color: var(--color-editor-text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
       "Helvetica Neue", Arial, sans-serif;
   }
@@ -19,16 +33,34 @@
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-editor-bg;
+    background-color: var(--color-editor-bg);
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-editor-border rounded;
+    background-color: var(--color-editor-border);
+    border-radius: 0.25rem;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-editor-muted;
+    background-color: var(--color-editor-muted);
   }
+}
+
+/* Prose overrides for dark theme */
+.prose-invert {
+  --tw-prose-body: #cdd6f4;
+  --tw-prose-headings: #cdd6f4;
+  --tw-prose-links: #89b4fa;
+  --tw-prose-bold: #cdd6f4;
+  --tw-prose-code: #f5c2e7;
+  --tw-prose-pre-bg: #1e1e2e;
+  --tw-prose-pre-code: #cdd6f4;
+  --tw-prose-quotes: #a6adc8;
+  --tw-prose-counters: #6c7086;
+  --tw-prose-bullets: #6c7086;
+  --tw-prose-hr: #313146;
+  --tw-prose-th-borders: #313146;
+  --tw-prose-td-borders: #313146;
 }
 
 /* CodeMirror overrides */
