@@ -78,6 +78,18 @@ jobs:
         with:
           generate_release_notes: true
           draft: false
+          body: |
+            ## macOS — "damaged and can't be opened"
+
+            Editora is not code-signed, so macOS Gatekeeper may block it on first launch. It is **not** damaged.
+
+            **Option 1 — Right-click to open:**
+            Right-click `Editora.app` → **Open** → **Open**. macOS remembers this choice.
+
+            **Option 2 — Terminal:**
+            ```bash
+            xattr -rd com.apple.quarantine /Applications/Editora.app
+            ```
           files: |
             artifacts/**/*.dmg
             artifacts/**/*.zip
