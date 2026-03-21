@@ -12,6 +12,10 @@ const config: ForgeConfig = {
     name: "Editora",
     executableName: "editora",
     asar: true,
+    asarUnpack: [
+      "**/*.node",
+      "**/node_modules/sharp/**",
+    ],
     icon: "./assets/icons/icon",
   },
   rebuildConfig: {},
