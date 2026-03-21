@@ -13,15 +13,6 @@ const config: ForgeConfig = {
     executableName: "editora",
     asar: true,
     icon: "./assets/icons/icon",
-    ...(process.env.APPLE_ID && {
-      osxSign: {},
-      osxNotarize: {
-        tool: "notarytool",
-        appleId: process.env.APPLE_ID,
-        appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD!,
-        teamId: process.env.APPLE_TEAM_ID!,
-      },
-    }),
   },
   rebuildConfig: {},
   makers: [

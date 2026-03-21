@@ -49,6 +49,32 @@ Open your project (or clone a Git repo), edit content collections with a split-v
 - **Keyboard Shortcuts** - Standard shortcuts for save, find, preview toggle, and more
 - **Cross-platform** - Builds for macOS (.dmg), Windows (.exe), and Linux (.deb)
 
+## Installation
+
+Download the latest release for your platform from the [Releases page](https://github.com/MrGKanev/Editora/releases).
+
+| Platform | File |
+|----------|------|
+| macOS | `.dmg` |
+| Windows | `.exe` |
+| Linux | `.deb` |
+
+### macOS: "damaged and can't be opened"
+
+Editora is not yet signed with an Apple Developer certificate, so macOS Gatekeeper may show this warning when you first open it. It is **not** actually damaged.
+
+**Option 1 — Right-click to open (easiest):**
+1. Right-click (or Control-click) `Editora.app`
+2. Select **Open** from the menu
+3. Click **Open** in the dialog that appears
+4. macOS remembers this choice — future launches work normally
+
+**Option 2 — Terminal command:**
+```bash
+xattr -rd com.apple.quarantine /Applications/Editora.app
+```
+Run this once after moving the app to `/Applications`, then open it normally.
+
 ## Getting Started
 
 ### Prerequisites
