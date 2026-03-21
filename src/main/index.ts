@@ -120,6 +120,8 @@ const registerAllHandlers = () => {
   ipcMain.handle("shell:show-item-in-folder", (_event, filePath: string) => {
     shell.showItemInFolder(filePath);
   });
+
+  ipcMain.handle("app:get-version", () => app.getVersion());
 };
 
 app.whenReady().then(() => {
