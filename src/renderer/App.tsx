@@ -11,6 +11,12 @@ import TerminalPanel from "./components/layout/TerminalPanel";
 import ShortcutsPanel from "./components/layout/ShortcutsPanel";
 
 function TitleBar() {
+  const [version, setVersion] = useState<string>("");
+
+  useEffect(() => {
+    window.editora.getVersion().then(setVersion);
+  }, []);
+
   return (
     <div
       className="h-9 flex-shrink-0 flex items-center bg-editor-surface border-b select-none"
@@ -18,7 +24,9 @@ function TitleBar() {
     >
       {/* Spacer for macOS traffic lights */}
       <div className="w-[78px] flex-shrink-0" />
-      <span className="text-xs text-editor-muted font-medium">Editora</span>
+      <span className="text-xs text-editor-muted font-medium">
+        Editora{version ? ` v${version}` : ""}
+      </span>
     </div>
   );
 }
