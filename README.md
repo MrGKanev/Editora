@@ -12,7 +12,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-blue?style=flat-square" alt="Platforms">
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License">
-  <img src="https://img.shields.io/badge/version-0.1.0-orange?style=flat-square" alt="Version">
 </p>
 
 ---
@@ -143,29 +142,6 @@ Installers are output to the `out/make/` directory.
 | Git operations | simple-git |
 | Styling | Tailwind CSS 4 (Catppuccin Mocha theme) |
 | Build tooling | Electron Forge + Vite |
-
-## Project Structure
-
-```
-src/
-  main/              # Electron main process
-    ipc/             # IPC handlers (project, content, media, git, server)
-    services/        # Business logic (dev server, media, collections)
-    utils/           # Path safety, file helpers
-  preload/           # Secure IPC bridge
-  renderer/          # React frontend
-    components/      # UI components
-      editor/        # Split view, CodeMirror, preview, frontmatter form
-      layout/        # Sidebar, status bar, terminal panel
-      collections/   # Collection list, file tree
-      media/         # Media gallery
-      git/           # Git status, commit panel
-      preview/       # Dev server controls
-    store/           # Zustand stores (editor, project, UI)
-    styles/          # Global CSS + Tailwind config
-    utils/           # YAML serialization, helpers
-  shared/            # Shared TypeScript types & constants
-```
 
 ## License
 
