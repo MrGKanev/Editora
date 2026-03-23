@@ -6,6 +6,8 @@ export default defineConfig({
     mainFields: ["module", "jsnext:main", "jsnext"],
   },
   build: {
+    minify: true,
+    sourcemap: false,
     rollupOptions: {
       external: ["sharp"],
     },

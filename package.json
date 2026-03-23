@@ -1,6 +1,6 @@
 {
   "name": "editora",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Desktop CMS for Astro-based websites",
   "main": ".vite/build/index.js",
   "author": "Editora",
@@ -42,6 +42,7 @@
     "@electron-forge/maker-dmg": "^7.6.0",
     "@electron-forge/maker-squirrel": "^7.6.0",
     "@electron-forge/maker-zip": "^7.6.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.11.1",
     "@electron-forge/plugin-fuses": "^7.6.0",
     "@electron-forge/plugin-vite": "^7.6.0",
     "@electron/fuses": "^1.8.0",

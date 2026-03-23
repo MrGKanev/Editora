@@ -5,18 +5,41 @@ import { MakerDeb } from "@electron-forge/maker-deb";
 import { MakerDMG } from "@electron-forge/maker-dmg";
 import { VitePlugin } from "@electron-forge/plugin-vite";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
+import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
+import fs from "node:fs";
+import path from "node:path";
 
 const config: ForgeConfig = {
   packagerConfig: {
     name: "Editora",
     executableName: "editora",
-    asar: true,
-    asarUnpack: [
-      "**/*.node",
-      "**/node_modules/sharp/**",
-    ],
+    asar: {
+      unpack: "{node_modules/@img/**,**/*.dylib}",
+    },
     icon: "./assets/icons/icon",
+    prune: true,
+    afterPrune: [
+      (buildPath, _electronVersion, _platform, _arch, callback) => {
+        try {
+          const dirs = [
+            "sharp", "@img", "detect-libc", "semver",
+            "electron-squirrel-startup", "debug", "ms",
+            "ajv", "ajv-formats",
+          ];
+          for (const dir of dirs) {
+            const src = path.join(__dirname, "node_modules", dir);
+            const dest = path.join(buildPath, "node_modules", dir);
+            if (fs.existsSync(src)) {
+              fs.cpSync(src, dest, { recursive: true });
+            }
+          }
+          callback();
+        } catch (err) {
+          callback(err as Error);
+        }
+      },
+    ],
   },
   rebuildConfig: {},
   makers: [
@@ -51,6 +74,7 @@ const config: ForgeConfig = {
         },
       ],
     }),
+    new AutoUnpackNativesPlugin({}),
     new FusesPlugin({
       version: FuseVersion.V1,
       [FuseV1Options.RunAsNode]: false,
