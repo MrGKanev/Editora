@@ -3,12 +3,12 @@ import { useProjectStore } from "./store/project-store";
 import { useEditorStore } from "./store/editor-store";
 import { useUIStore } from "./store/ui-store";
 import { buildFileContent } from "./utils/yaml";
-import ProjectSelector from "./components/project/ProjectSelector";
-import Sidebar from "./components/layout/Sidebar";
-import StatusBar from "./components/layout/StatusBar";
-import EditorArea from "./components/editor/EditorArea";
-import TerminalPanel from "./components/layout/TerminalPanel";
-import ShortcutsPanel from "./components/layout/ShortcutsPanel";
+const ProjectSelector = React.lazy(() => import("./components/project/ProjectSelector"));
+const Sidebar = React.lazy(() => import("./components/layout/Sidebar"));
+const StatusBar = React.lazy(() => import("./components/layout/StatusBar"));
+const EditorArea = React.lazy(() => import("./components/editor/EditorArea"));
+const TerminalPanel = React.lazy(() => import("./components/layout/TerminalPanel"));
+const ShortcutsPanel = React.lazy(() => import("./components/layout/ShortcutsPanel"));
 
 function TitleBar() {
   const [version, setVersion] = useState<string>("");
@@ -211,23 +211,27 @@ export default function App() {
       <div className="flex flex-col h-screen">
         <TitleBar />
         <div className="flex-1 overflow-hidden">
-          <ProjectSelector />
+          <React.Suspense fallback={null}>
+            <ProjectSelector />
+          </React.Suspense>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen">
-      {!focusMode && <TitleBar />}
-      <div className="flex flex-1 overflow-hidden min-h-0">
-        {showSidebar && !focusMode && <Sidebar />}
-        <EditorArea />
+    <React.Suspense fallback={null}>
+      <div className="flex flex-col h-screen">
+        {!focusMode && <TitleBar />}
+        <div className="flex flex-1 overflow-hidden min-h-0">
+          {showSidebar && !focusMode && <Sidebar />}
+          <EditorArea />
+        </div>
+        {!focusMode && <TerminalPanel />}
+        {!focusMode && <StatusBar />}
+        {focusMode && <ExitFocusButton />}
+        <ShortcutsPanel isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
       </div>
-      {!focusMode && <TerminalPanel />}
-      {!focusMode && <StatusBar />}
-      {focusMode && <ExitFocusButton />}
-      <ShortcutsPanel isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
-    </div>
+    </React.Suspense>
   );
 }

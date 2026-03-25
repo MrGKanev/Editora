@@ -2,9 +2,8 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { html } from "@codemirror/lang-html";
-import { languages } from "@codemirror/language-data";
+import { LanguageDescription, HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
-import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { tags } from "@lezer/highlight";
 import { search, openSearchPanel, searchKeymap } from "@codemirror/search";
 import { keymap } from "@codemirror/view";
@@ -19,6 +18,21 @@ import { useUIStore } from "../../store/ui-store";
 import TableEditorModal, { parseMarkdownTable } from "./TableEditorModal";
 import ImageUploadDialog from "../media/ImageUploadDialog";
 import { builtinSnippets } from "../../utils/snippets";
+
+// Curated languages for static site CMS (lazy-loaded on demand)
+const cmsLanguages = [
+  LanguageDescription.of({ name: "JavaScript", alias: ["js"], extensions: ["js", "mjs", "cjs"], load: () => import("@codemirror/lang-javascript").then(m => m.javascript()) }),
+  LanguageDescription.of({ name: "TypeScript", alias: ["ts"], extensions: ["ts", "mts"], load: () => import("@codemirror/lang-javascript").then(m => m.javascript({ typescript: true })) }),
+  LanguageDescription.of({ name: "JSX", alias: ["jsx"], extensions: ["jsx"], load: () => import("@codemirror/lang-javascript").then(m => m.javascript({ jsx: true })) }),
+  LanguageDescription.of({ name: "TSX", alias: ["tsx"], extensions: ["tsx"], load: () => import("@codemirror/lang-javascript").then(m => m.javascript({ jsx: true, typescript: true })) }),
+  LanguageDescription.of({ name: "CSS", extensions: ["css"], load: () => import("@codemirror/lang-css").then(m => m.css()) }),
+  LanguageDescription.of({ name: "HTML", extensions: ["html", "htm"], load: () => import("@codemirror/lang-html").then(m => m.html()) }),
+  LanguageDescription.of({ name: "JSON", extensions: ["json"], load: () => import("@codemirror/lang-json").then(m => m.json()) }),
+  LanguageDescription.of({ name: "YAML", alias: ["yml"], extensions: ["yaml", "yml"], load: () => import("@codemirror/lang-yaml").then(m => m.yaml()) }),
+  LanguageDescription.of({ name: "Python", alias: ["py"], extensions: ["py"], load: () => import("@codemirror/lang-python").then(m => m.python()) }),
+  LanguageDescription.of({ name: "SQL", extensions: ["sql"], load: () => import("@codemirror/lang-sql").then(m => m.sql()) }),
+  LanguageDescription.of({ name: "XML", extensions: ["xml", "svg"], load: () => import("@codemirror/lang-xml").then(m => m.xml()) }),
+];
 
 const editorTheme = EditorView.theme({
   "&": {
@@ -94,15 +108,24 @@ const highlightStyle = HighlightStyle.define([
   { tag: tags.link, color: "#89b4fa", textDecoration: "underline" },
   { tag: tags.url, color: "#89b4fa" },
   { tag: tags.monospace, color: "#f5c2e7" },
-  { tag: tags.angleBracket, color: "#585b70" },
-  { tag: tags.tagName, color: "#585b70" },
-  { tag: tags.attributeName, color: "#585b70" },
-  { tag: tags.attributeValue, color: "#585b70" },
+  // HTML tags — vivid colors
+  { tag: tags.angleBracket, color: "#6c7086" },
+  { tag: tags.tagName, color: "#f38ba8" },          // pink — tag names like h2, p, ul
+  { tag: tags.attributeName, color: "#89b4fa" },    // blue — href, class, id
+  { tag: tags.attributeValue, color: "#a6e3a1" },   // green — attribute values
   { tag: tags.comment, color: "#585b70", fontStyle: "italic" },
   { tag: tags.string, color: "#a6e3a1" },
   { tag: tags.meta, color: "#f9e2af" },
-  { tag: tags.processingInstruction, color: "#6c7086" },
+  { tag: tags.processingInstruction, color: "#cba6f7" },
   { tag: tags.quote, color: "#a6adc8", fontStyle: "italic" },
+  { tag: tags.keyword, color: "#cba6f7" },
+  { tag: tags.operator, color: "#89dceb" },
+  { tag: tags.number, color: "#fab387" },
+  { tag: tags.typeName, color: "#f9e2af" },
+  { tag: tags.className, color: "#f9e2af" },
+  { tag: tags.definition(tags.variableName), color: "#89b4fa" },
+  { tag: tags.function(tags.variableName), color: "#89b4fa" },
+  { tag: tags.propertyName, color: "#cdd6f4" },
 ]);
 
 // Catppuccin Latte (light) editor theme
@@ -180,14 +203,22 @@ const highlightStyleLight = HighlightStyle.define([
   { tag: tags.url, color: "#1e66f5" },
   { tag: tags.monospace, color: "#8839ef" },
   { tag: tags.angleBracket, color: "#9ca0b0" },
-  { tag: tags.tagName, color: "#9ca0b0" },
-  { tag: tags.attributeName, color: "#9ca0b0" },
-  { tag: tags.attributeValue, color: "#9ca0b0" },
+  { tag: tags.tagName, color: "#d20f39" },           // red — tag names
+  { tag: tags.attributeName, color: "#1e66f5" },     // blue — attributes
+  { tag: tags.attributeValue, color: "#40a02b" },    // green — attribute values
   { tag: tags.comment, color: "#9ca0b0", fontStyle: "italic" },
   { tag: tags.string, color: "#40a02b" },
   { tag: tags.meta, color: "#df8e1d" },
-  { tag: tags.processingInstruction, color: "#9ca0b0" },
+  { tag: tags.processingInstruction, color: "#8839ef" },
   { tag: tags.quote, color: "#6c6f85", fontStyle: "italic" },
+  { tag: tags.keyword, color: "#8839ef" },
+  { tag: tags.operator, color: "#04a5e5" },
+  { tag: tags.number, color: "#fe640b" },
+  { tag: tags.typeName, color: "#df8e1d" },
+  { tag: tags.className, color: "#df8e1d" },
+  { tag: tags.definition(tags.variableName), color: "#1e66f5" },
+  { tag: tags.function(tags.variableName), color: "#1e66f5" },
+  { tag: tags.propertyName, color: "#4c4f69" },
 ]);
 
 // Snippet completion source: activates when typing "/" and shows matching snippets
@@ -554,9 +585,8 @@ export default function MarkdownEditor() {
 
   const extensions = useMemo(
     () => [
-      markdown({ codeLanguages: languages, htmlTagLanguage: html() }),
+      markdown({ codeLanguages: cmsLanguages, htmlTagLanguage: html() }),
       EditorView.lineWrapping,
-      theme === "light" ? editorThemeLight : editorTheme,
       syntaxHighlighting(theme === "light" ? highlightStyleLight : highlightStyle),
       selectionListener,
       search(),
@@ -569,9 +599,14 @@ export default function MarkdownEditor() {
     [selectionListener, theme]
   );
 
+  const editorThemeExt = theme === "light" ? editorThemeLight : editorTheme;
+
+  const bgColor = theme === "light" ? "#eff1f5" : "#1e1e2e";
+
   return (
     <div
       className={`h-full relative ${isDragOver ? "ring-2 ring-inset ring-editor-accent/50" : ""}`}
+      style={{ backgroundColor: bgColor }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -587,6 +622,7 @@ export default function MarkdownEditor() {
         ref={cmRef}
         value={editorContent}
         onChange={onChange}
+        theme={editorThemeExt}
         extensions={extensions}
         basicSetup={{
           lineNumbers: true,

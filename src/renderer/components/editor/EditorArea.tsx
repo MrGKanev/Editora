@@ -3,9 +3,8 @@ import { useEditorStore } from "../../store/editor-store";
 import { useProjectStore } from "../../store/project-store";
 import { useUIStore } from "../../store/ui-store";
 import SplitView from "./SplitView";
-import FrontmatterForm from "./FrontmatterForm";
-import SEOPanel from "./SEOPanel";
-import LinkCheckerPanel from "./LinkCheckerPanel";
+const FrontmatterForm = React.lazy(() => import("./FrontmatterForm"));
+const ContentPanel = React.lazy(() => import("./ContentPanel"));
 
 function TabBar() {
   const { tabs, activeTabPath, setActiveTab, closeTab } = useEditorStore();
@@ -57,8 +56,8 @@ export default function EditorArea() {
   const showPreview = useUIStore((s) => s.showPreview);
   const focusMode = useUIStore((s) => s.focusMode);
   const [showFrontmatter, setShowFrontmatter] = useState(false);
-  const [showSEO, setShowSEO] = useState(false);
-  const [showLinks, setShowLinks] = useState(false);
+  const [showContent, setShowContent] = useState(false);
+  const [contentTab, setContentTab] = useState<"seo" | "links">("seo");
   const [showExportMenu, setShowExportMenu] = useState(false);
 
   // Find schema for the current file's collection
@@ -75,14 +74,12 @@ export default function EditorArea() {
   // Close drawers when switching files
   useEffect(() => {
     setShowFrontmatter(false);
-    setShowSEO(false);
-    setShowLinks(false);
+    setShowContent(false);
   }, [currentFile?.path]);
 
   const closeAllDrawers = () => {
     setShowFrontmatter(false);
-    setShowSEO(false);
-    setShowLinks(false);
+    setShowContent(false);
   };
 
   // Keyboard shortcut: Ctrl/Cmd + S
@@ -146,9 +143,14 @@ export default function EditorArea() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { const next = !showLinks; closeAllDrawers(); setShowLinks(next); }}
+            onClick={() => {
+              const next = !showContent || contentTab !== "links";
+              closeAllDrawers();
+              setContentTab("links");
+              setShowContent(next);
+            }}
             className={`px-2.5 py-1 text-xs rounded transition-colors ${
-              showLinks
+              showContent && contentTab === "links"
                 ? "bg-editor-accent text-editor-bg"
                 : "text-editor-muted hover:text-editor-text hover:bg-editor-border/50"
             }`}
@@ -156,9 +158,14 @@ export default function EditorArea() {
             Links
           </button>
           <button
-            onClick={() => { const next = !showSEO; closeAllDrawers(); setShowSEO(next); }}
+            onClick={() => {
+              const next = !showContent || contentTab !== "seo";
+              closeAllDrawers();
+              setContentTab("seo");
+              setShowContent(next);
+            }}
             className={`px-2.5 py-1 text-xs rounded transition-colors ${
-              showSEO
+              showContent && contentTab === "seo"
                 ? "bg-editor-accent text-editor-bg"
                 : "text-editor-muted hover:text-editor-text hover:bg-editor-border/50"
             }`}
@@ -218,23 +225,22 @@ export default function EditorArea() {
       <SplitView showPreview={showPreview} />
 
       {/* Frontmatter drawer */}
-      <FrontmatterForm
-        isOpen={showFrontmatter}
-        onClose={() => setShowFrontmatter(false)}
-        schema={schema}
-      />
+      <React.Suspense fallback={null}>
+        <FrontmatterForm
+          isOpen={showFrontmatter}
+          onClose={() => setShowFrontmatter(false)}
+          schema={schema}
+        />
+      </React.Suspense>
 
-      {/* SEO drawer */}
-      <SEOPanel
-        isOpen={showSEO}
-        onClose={() => setShowSEO(false)}
-      />
-
-      {/* Link checker drawer */}
-      <LinkCheckerPanel
-        isOpen={showLinks}
-        onClose={() => setShowLinks(false)}
-      />
+      {/* SEO + Links drawer */}
+      <React.Suspense fallback={null}>
+        <ContentPanel
+          isOpen={showContent}
+          onClose={() => setShowContent(false)}
+          initialTab={contentTab}
+        />
+      </React.Suspense>
     </div>
   );
 }

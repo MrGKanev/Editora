@@ -95,14 +95,21 @@
   --tw-prose-td-borders: #ccd0da;
 }
 
-/* CodeMirror overrides */
+/* CodeMirror overrides — dark theme (default) */
 .cm-editor {
   height: 100%;
   font-size: 14px;
+  background-color: transparent !important;
 }
 
 .cm-editor .cm-scroller {
   font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  background-color: transparent !important;
+}
+
+.cm-editor .cm-gutters {
+  background-color: #1e1e2e !important;
+  border-right-color: #313146 !important;
 }
 
 .cm-editor .cm-content {
@@ -111,4 +118,10 @@
 
 .cm-editor.cm-focused {
   outline: none;
+}
+
+/* Light theme gutters */
+.theme-light .cm-editor .cm-gutters {
+  background-color: #eff1f5 !important;
+  border-right-color: #ccd0da !important;
 }

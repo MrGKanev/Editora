@@ -88,7 +88,7 @@ export default function MarkdownPreview() {
     if (clean !== html) {
       containerRef.current.innerHTML = clean;
     }
-  });
+  }, [processedContent]);
 
   return (
     <div

@@ -19,6 +19,19 @@ const config: ForgeConfig = {
     },
     icon: "./assets/icons/icon",
     prune: true,
+    ignore: [
+      /^\/src\//,
+      /^\/node_modules\/.cache/,
+      /^\/\.vscode/,
+      /^\/\.git/,
+      /^\/coverage/,
+      /^\/\.vitest/,
+      /\.map$/,
+      /\.test\.(ts|tsx|js)$/,
+      /\/__tests__\//,
+      /^\/node_modules\/.*\/(test|tests|__tests__|docs|examples|\.github)\//,
+      /^\/node_modules\/.*\/(README|CHANGELOG|LICENSE|\.npmignore)(\.md)?$/i,
+    ],
     afterPrune: [
       (buildPath, _electronVersion, _platform, _arch, callback) => {
         try {
