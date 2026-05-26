@@ -101,10 +101,11 @@ const api = {
 
   // Shell
   showItemInFolder: (filePath: string) =>
-    ipcRenderer.invoke("shell:show-item-in-folder", filePath),
+    ipcRenderer.invoke(IPC.SHELL_SHOW_IN_FOLDER, filePath),
 
   // App
-  getVersion: () => ipcRenderer.invoke("app:get-version"),
+  getVersion: () => ipcRenderer.invoke(IPC.APP_GET_VERSION),
+  getHomeDir: (): Promise<string> => ipcRenderer.invoke(IPC.APP_GET_HOME_DIR),
 };
 
 contextBridge.exposeInMainWorld("editora", api);

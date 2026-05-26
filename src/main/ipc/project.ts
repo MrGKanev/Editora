@@ -7,9 +7,8 @@ const projectManager = new ProjectManager();
 const GIT_URL_PATTERN = /^(https?:\/\/[^\s]+\.git|https?:\/\/(github|gitlab|bitbucket)\.[^\s]+|git@[^\s]+:[^\s]+\.git)$/i;
 
 function isValidGitUrl(url: string): boolean {
-  // Allow common git URL formats
+  if (url.startsWith("javascript:") || url.startsWith("file://")) return false;
   if (GIT_URL_PATTERN.test(url)) return true;
-  // Also allow simple https URLs to known hosts without .git suffix
   if (/^https?:\/\/(github\.com|gitlab\.com|bitbucket\.org)\/[\w\-./]+$/i.test(url)) return true;
   return false;
 }

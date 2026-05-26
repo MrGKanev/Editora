@@ -1,5 +1,6 @@
 import { app, BrowserWindow, Menu, protocol, net, shell, ipcMain } from "electron";
 import path from "node:path";
+import { IPC } from "../shared/types";
 import { registerProjectHandlers } from "./ipc/project";
 import { registerContentHandlers } from "./ipc/content";
 import { registerMediaHandlers } from "./ipc/media";
@@ -117,11 +118,13 @@ const registerAllHandlers = () => {
   registerLinkHandlers();
   registerExportHandlers();
 
-  ipcMain.handle("shell:show-item-in-folder", (_event, filePath: string) => {
+  ipcMain.handle(IPC.SHELL_SHOW_IN_FOLDER, (_event, filePath: string) => {
     shell.showItemInFolder(filePath);
   });
 
-  ipcMain.handle("app:get-version", () => app.getVersion());
+  ipcMain.handle(IPC.APP_GET_VERSION, () => app.getVersion());
+
+  ipcMain.handle(IPC.APP_GET_HOME_DIR, () => app.getPath("home"));
 };
 
 app.whenReady().then(() => {

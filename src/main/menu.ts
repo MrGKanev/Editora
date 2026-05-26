@@ -176,13 +176,13 @@ export function createAppMenu(): Menu {
         {
           label: "Documentation",
           click: () => {
-            shell.openExternal("https://github.com/");
+            shell.openExternal("https://github.com/MrGKanev/Editora#readme");
           },
         },
         {
           label: "Report Issue",
           click: () => {
-            shell.openExternal("https://github.com/");
+            shell.openExternal("https://github.com/MrGKanev/Editora/issues");
           },
         },
       ],

@@ -129,4 +129,9 @@ export const IPC = {
   SERVER_STOP: "server:stop",
   SERVER_STATUS: "server:status",
   SERVER_LOG: "server:log",
+
+  // App / Shell
+  APP_GET_VERSION: "app:get-version",
+  APP_GET_HOME_DIR: "app:get-home-dir",
+  SHELL_SHOW_IN_FOLDER: "shell:show-item-in-folder",
 } as const;

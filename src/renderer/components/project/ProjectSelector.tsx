@@ -15,7 +15,8 @@ export default function ProjectSelector() {
   const handleClone = async () => {
     if (!cloneUrl.trim()) return;
     const folderName = cloneUrl.split("/").pop()?.replace(".git", "") || "project";
-    const dest = `${require("os").homedir()}/Projects/${folderName}`;
+    const homeDir = await window.editora.getHomeDir();
+    const dest = `${homeDir}/Projects/${folderName}`;
     const result = await window.editora.cloneProject(cloneUrl, dest);
     if (result && !("error" in result)) {
       openProjectPath(result.path);

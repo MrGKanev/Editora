@@ -2,8 +2,13 @@ import simpleGit, { SimpleGit } from "simple-git";
 import { GitStatus, GitCommitResult } from "../../shared/types";
 
 export class GitService {
+  private cache = new Map<string, SimpleGit>();
+
   private getGit(projectPath: string): SimpleGit {
-    return simpleGit(projectPath);
+    if (!this.cache.has(projectPath)) {
+      this.cache.set(projectPath, simpleGit(projectPath));
+    }
+    return this.cache.get(projectPath)!;
   }
 
   async getStatus(projectPath: string): Promise<GitStatus> {

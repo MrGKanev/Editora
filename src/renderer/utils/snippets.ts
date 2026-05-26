@@ -23,7 +23,7 @@ export const builtinSnippets: Snippet[] = [
     trigger: "/details",
     label: "Collapsible Section",
     template:
-      "<details>\n<summary>$1Click to expand</summary>\n\nContent here.\n\n</details>\n",
+      "<details>\n<summary>$1</summary>\n\nContent here.\n\n</details>\n",
   },
   {
     trigger: "/img",

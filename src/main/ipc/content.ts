@@ -49,6 +49,9 @@ export function registerContentHandlers() {
   ipcMain.handle(
     IPC.CONTENT_WRITE,
     async (_event, filePath: string, content: string) => {
+      if (content.length > 10 * 1024 * 1024) {
+        return { error: "File too large (max 10 MB)" };
+      }
       try {
         await fs.writeFile(filePath, content, "utf-8");
         return { success: true };

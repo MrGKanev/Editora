@@ -40,7 +40,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         return;
       }
       set({ currentProject: result, isLoading: false });
-      get().loadCollections();
+      try {
+        await get().loadCollections();
+      } catch (err) {
+        set({ error: "Collections failed to load: " + (err as Error).message });
+      }
     } catch (err) {
       set({ error: (err as Error).message, isLoading: false });
     }
@@ -54,7 +58,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         set({ error: "No supported static site project detected.", isLoading: false });
         return;
       }
-      // Re-use openProject flow but with specific path
       const project: Project = {
         path,
         name: path.split("/").pop() || path,
@@ -62,7 +65,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         isGitRepo: false,
       };
       set({ currentProject: project, isLoading: false });
-      get().loadCollections();
+      try {
+        await get().loadCollections();
+      } catch (err) {
+        set({ error: "Collections failed to load: " + (err as Error).message });
+      }
     } catch (err) {
       set({ error: (err as Error).message, isLoading: false });
     }
@@ -71,11 +78,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   loadCollections: async () => {
     const project = get().currentProject;
     if (!project) return;
-    try {
-      const collections = await window.editora.listCollections(project.path, project.ssgId);
-      set({ collections });
-    } catch (err) {
-      console.error("Failed to load collections:", err);
-    }
+    const collections = await window.editora.listCollections(project.path, project.ssgId);
+    set({ collections });
   },
 }));

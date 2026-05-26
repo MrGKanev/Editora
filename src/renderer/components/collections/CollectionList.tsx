@@ -298,6 +298,7 @@ function CollectionItem({
   };
 
   const handleDelete = async (file: ContentFile) => {
+    if (!confirm(`Delete "${file.name}"? This cannot be undone.`)) return;
     try {
       await window.editora.deleteContent(file.path);
       closeTab(file.path);

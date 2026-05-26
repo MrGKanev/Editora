@@ -16,7 +16,7 @@ function LogLine({ log }: { log: string }) {
 }
 
 export default function TerminalPanel() {
-  const { showTerminal, toggleTerminal, serverLogs, clearServerLogs, devServer } =
+  const { showTerminal, toggleTerminal, serverLogs, clearServerLogs, devServer, terminalHeight } =
     useUIStore();
   const scrollRef = useRef<HTMLDivElement>(null);
   const isStuckToBottom = useRef(true);
@@ -48,7 +48,7 @@ export default function TerminalPanel() {
   if (!showTerminal) return null;
 
   return (
-    <div className="flex flex-col border-t bg-editor-bg" style={{ height: 200 }}>
+    <div className="flex flex-col border-t bg-editor-bg" style={{ height: terminalHeight }}>
       {/* Terminal header */}
       <div className="flex items-center justify-between px-3 py-1 bg-editor-surface border-b flex-shrink-0">
         <div className="flex items-center gap-3">
