@@ -53,18 +53,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   openProjectPath: async (path: string) => {
     set({ isLoading: true, error: null });
     try {
-      const isValid = await window.editora.validateProject(path);
-      if (!isValid) {
-        set({ error: "No supported static site project detected.", isLoading: false });
+      const result = await window.editora.openProjectAtPath(path);
+      if (!result) {
+        set({ isLoading: false });
         return;
       }
-      const project: Project = {
-        path,
-        name: path.split("/").pop() || path,
-        lastOpened: Date.now(),
-        isGitRepo: false,
-      };
-      set({ currentProject: project, isLoading: false });
+      if ("error" in result) {
+        set({ error: result.error, isLoading: false });
+        return;
+      }
+      set({ currentProject: result, isLoading: false });
       try {
         await get().loadCollections();
       } catch (err) {

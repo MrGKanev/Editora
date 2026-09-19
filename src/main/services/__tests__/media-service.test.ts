@@ -157,46 +157,4 @@ describe("MediaService", () => {
       expect(files.length).toBe(2);
     });
   });
-
-  describe("uploadFiles", () => {
-    it("should copy files to public/images/", async () => {
-      // Create a source file
-      const sourceFile = path.join(tmpDir, "source.png");
-      await fs.writeFile(sourceFile, "image-data");
-
-      const result = await service.uploadFiles(tmpDir, [sourceFile]);
-      expect(result.uploaded.length).toBe(1);
-
-      const destPath = path.join(tmpDir, "public", "images", "source.png");
-      const exists = await fs.access(destPath).then(() => true).catch(() => false);
-      expect(exists).toBe(true);
-
-      const content = await fs.readFile(destPath, "utf-8");
-      expect(content).toBe("image-data");
-    });
-
-    it("should create public/images/ directory if missing", async () => {
-      const sourceFile = path.join(tmpDir, "test.jpg");
-      await fs.writeFile(sourceFile, "data");
-
-      await service.uploadFiles(tmpDir, [sourceFile]);
-
-      const dirExists = await fs.access(path.join(tmpDir, "public", "images"))
-        .then(() => true).catch(() => false);
-      expect(dirExists).toBe(true);
-    });
-
-    it("should upload multiple files", async () => {
-      const files = ["a.png", "b.jpg", "c.gif"];
-      for (const f of files) {
-        await fs.writeFile(path.join(tmpDir, f), `data-${f}`);
-      }
-
-      const result = await service.uploadFiles(
-        tmpDir,
-        files.map((f) => path.join(tmpDir, f))
-      );
-      expect(result.uploaded.length).toBe(3);
-    });
-  });
 });

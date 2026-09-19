@@ -30,10 +30,8 @@ const CONTENT_ROOTS = [
 
 const EXTENSIONS = [".md", ".mdx", ".astro", ".html", ".tsx", ".jsx"];
 
-// Common image extensions for local file checking
-const IMAGE_EXTENSIONS = new Set([
-  ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".avif", ".ico", ".bmp", ".tiff",
-]);
+// Max simultaneous outbound HEAD requests when validating external links
+const EXTERNAL_CONCURRENCY = 5;
 
 async function fileExists(p: string): Promise<boolean> {
   try {
@@ -233,56 +231,51 @@ export function registerLinkHandlers() {
           const url = match[1];
           if (url.startsWith("#") || url.startsWith("mailto:") || url.startsWith("data:")) continue;
           // For "auto" kind (markdown syntax), determine by checking if it starts with "!"
-          let resolvedKind: "link" | "image" = kind === "auto"
+          const resolvedKind: "link" | "image" = kind === "auto"
             ? (match[0].startsWith("!") ? "image" : "link")
             : kind;
           links.push({ url, line: offsetToLine(match.index), kind: resolvedKind });
         }
       }
 
-      // Deduplicate by URL but keep first line number and kind
-      const seen = new Map<string, number>();
-      const unique: { url: string; line: number; kind: "link" | "image" }[] = [];
-      for (const link of links) {
-        if (!seen.has(link.url)) {
-          seen.set(link.url, link.line);
-          unique.push(link);
-        }
-      }
+      // Deduplicate by URL, keeping the first line number and kind
+      const seen = new Set<string>();
+      const unique = links.filter((link) => {
+        if (seen.has(link.url)) return false;
+        seen.add(link.url);
+        return true;
+      });
 
-      // Check all links (external in parallel with concurrency limit)
-      const results: LinkCheckResult[] = [];
-      const external: { url: string; line: number; kind: "link" | "image" }[] = [];
+      const isExternal = (url: string) =>
+        url.startsWith("http://") || url.startsWith("https://");
+      const external = unique.filter((l) => isExternal(l.url));
+      const internal = unique.filter((l) => !isExternal(l.url));
 
-      for (const link of unique) {
-        if (link.url.startsWith("http://") || link.url.startsWith("https://")) {
-          external.push(link);
-        } else {
-          // For internal images, use image-specific checking
+      // Internal checks are fs.access probes — run them all at once.
+      const internalResults = await Promise.all(
+        internal.map(async (link) => {
           const result = link.kind === "image"
             ? await checkInternalImage(link.url, filePath, projectPath)
             : await checkInternalLink(link.url, filePath, projectPath);
-          results.push({ ...result, kind: link.kind, line: link.line });
-        }
-      }
+          return { ...result, kind: link.kind, line: link.line } as LinkCheckResult;
+        })
+      );
 
-      // Check external links with concurrency of 5
-      const chunks: { url: string; line: number; kind: "link" | "image" }[][] = [];
-      for (let i = 0; i < external.length; i += 5) {
-        chunks.push(external.slice(i, i + 5));
-      }
-
-      for (const chunk of chunks) {
-        const chunkResults = await Promise.all(
-          chunk.map(async (link) => {
-            const result = await checkExternalLink(link.url);
-            return { ...result, kind: link.kind, line: link.line } as LinkCheckResult;
-          })
+      // External checks hit the network, so cap them at 5 in flight.
+      const externalResults: LinkCheckResult[] = [];
+      for (let i = 0; i < external.length; i += EXTERNAL_CONCURRENCY) {
+        const chunk = external.slice(i, i + EXTERNAL_CONCURRENCY);
+        externalResults.push(
+          ...(await Promise.all(
+            chunk.map(async (link) => {
+              const result = await checkExternalLink(link.url);
+              return { ...result, kind: link.kind, line: link.line } as LinkCheckResult;
+            })
+          ))
         );
-        results.push(...chunkResults);
       }
 
-      return results;
+      return [...internalResults, ...externalResults];
       } catch (err) {
         console.error("Link check error:", err);
         return [];

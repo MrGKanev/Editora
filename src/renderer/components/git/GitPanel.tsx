@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useProjectStore } from "../../store/project-store";
 import { useUIStore } from "../../store/ui-store";
 
@@ -8,25 +8,23 @@ export default function GitPanel() {
   const [commitMessage, setCommitMessage] = useState("");
   const [isWorking, setIsWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const projectPathRef = useRef(project?.path);
-  projectPathRef.current = project?.path;
+  const projectPath = project?.path;
 
   const refreshStatus = useCallback(async () => {
-    const currentPath = projectPathRef.current;
-    if (!currentPath) return;
+    if (!projectPath) return;
     try {
-      const status = await window.editora.gitStatus(currentPath);
+      const status = await window.editora.gitStatus(projectPath);
       setGitStatus(status);
     } catch {
       setGitStatus(null);
     }
-  }, [setGitStatus]);
+  }, [projectPath, setGitStatus]);
 
   useEffect(() => {
     refreshStatus();
     const interval = setInterval(refreshStatus, 10000);
     return () => clearInterval(interval);
-  }, [project?.path, refreshStatus]);
+  }, [refreshStatus]);
 
   if (!gitStatus?.isRepo) {
     return (

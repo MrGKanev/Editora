@@ -17,7 +17,7 @@ const proseClasses = `p-6 prose prose-invert prose-sm max-w-none bg-editor-bg
 // HTML tags that should never be treated as markdown code blocks
 // even when indented with 4+ spaces
 const HTML_BLOCK_TAGS =
-  /^(\s{4,})<(\/?(p|h[1-6]|div|section|article|header|footer|nav|main|aside|ul|ol|li|dl|dt|dd|table|thead|tbody|tfoot|tr|th|td|blockquote|figure|figcaption|details|summary|pre|hr|br|a|strong|em|code|span|img|mark|sup|sub|iframe|video|audio|source|picture)[\s>\/])/i;
+  /^(\s{4,})<(\/?(p|h[1-6]|div|section|article|header|footer|nav|main|aside|ul|ol|li|dl|dt|dd|table|thead|tbody|tfoot|tr|th|td|blockquote|figure|figcaption|details|summary|pre|hr|br|a|strong|em|code|span|img|mark|sup|sub|iframe|video|audio|source|picture)[\s>/])/i;
 
 /**
  * Pre-process content to fix HTML blocks that get misinterpreted by the

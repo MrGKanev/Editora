@@ -13,6 +13,15 @@ function isValidGitUrl(url: string): boolean {
   return false;
 }
 
+const UNSUPPORTED_MESSAGE =
+  "No supported static site project detected. Editora supports Astro, Hugo, Jekyll, Eleventy, Next.js, Nuxt, Gatsby, VitePress, and other markdown-based projects.";
+
+async function openDetectedProject(projectPath: string) {
+  const isValid = await projectManager.validateProject(projectPath);
+  if (!isValid) return { error: UNSUPPORTED_MESSAGE };
+  return projectManager.openProject(projectPath);
+}
+
 export function registerProjectHandlers() {
   ipcMain.handle(IPC.PROJECT_OPEN, async () => {
     const win = BrowserWindow.getFocusedWindow();
@@ -25,14 +34,16 @@ export function registerProjectHandlers() {
 
     if (result.canceled || !result.filePaths[0]) return null;
 
-    const projectPath = result.filePaths[0];
-    const isValid = await projectManager.validateProject(projectPath);
-    if (!isValid) {
-      return { error: "No supported static site project detected. Editora supports Astro, Hugo, Jekyll, Eleventy, Next.js, Nuxt, Gatsby, VitePress, and other markdown-based projects." };
-    }
+    return openDetectedProject(result.filePaths[0]);
+  });
 
-    const project = await projectManager.openProject(projectPath);
-    return project;
+  ipcMain.handle(IPC.PROJECT_OPEN_PATH, async (_event, projectPath: string) => {
+    if (!projectPath) return null;
+    try {
+      return await openDetectedProject(projectPath);
+    } catch (err) {
+      return { error: (err as Error).message };
+    }
   });
 
   ipcMain.handle(

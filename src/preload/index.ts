@@ -1,9 +1,11 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 import { IPC } from "../shared/types";
 
 const api = {
   // Project
   openProject: () => ipcRenderer.invoke(IPC.PROJECT_OPEN),
+  openProjectAtPath: (path: string) =>
+    ipcRenderer.invoke(IPC.PROJECT_OPEN_PATH, path),
   cloneProject: (url: string, dest: string) =>
     ipcRenderer.invoke(IPC.PROJECT_CLONE, url, dest),
   getRecentProjects: () => ipcRenderer.invoke(IPC.PROJECT_GET_RECENT),
@@ -36,12 +38,8 @@ const api = {
   // Media
   listMedia: (projectPath: string, ssgId?: string) =>
     ipcRenderer.invoke(IPC.MEDIA_LIST, projectPath, ssgId),
-  uploadMedia: (projectPath: string, filePaths: string[]) =>
-    ipcRenderer.invoke(IPC.MEDIA_UPLOAD, projectPath, filePaths),
   deleteMedia: (filePath: string) =>
     ipcRenderer.invoke(IPC.MEDIA_DELETE, filePath),
-  getMediaPath: (filePath: string) =>
-    ipcRenderer.invoke(IPC.MEDIA_GET_PATH, filePath),
   getImageInfo: (filePaths: string[]) =>
     ipcRenderer.invoke(IPC.MEDIA_IMAGE_INFO, filePaths),
   optimizeUpload: (
@@ -102,6 +100,10 @@ const api = {
   // Shell
   showItemInFolder: (filePath: string) =>
     ipcRenderer.invoke(IPC.SHELL_SHOW_IN_FOLDER, filePath),
+
+  // Resolve a dropped/picked File to its absolute path. Electron removed the
+  // non-standard File.path property in v32; webUtils is the replacement.
+  getPathForFile: (file: File): string => webUtils.getPathForFile(file),
 
   // App
   getVersion: () => ipcRenderer.invoke(IPC.APP_GET_VERSION),

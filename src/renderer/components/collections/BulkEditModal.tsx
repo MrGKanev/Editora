@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { ContentCollection, ContentFile } from "../../../shared/types";
+import { ContentCollection } from "../../../shared/types";
 import { buildFileContent } from "../../utils/yaml";
 
 interface BulkEditModalProps {

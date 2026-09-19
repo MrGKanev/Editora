@@ -78,7 +78,8 @@ Run this once after moving the app to `/Applications`, then open it normally.
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 18+
+- [Node.js](https://nodejs.org/) 22.12+ (Node 22 LTS recommended — see the note below)
+- [pnpm](https://pnpm.io/) 11+ (the repo pins a version via `packageManager`, so [Corepack](https://nodejs.org/api/corepack.html) will pick it up automatically)
 - [Git](https://git-scm.com/) (for Git features)
 
 ### Install & Run
@@ -86,23 +87,40 @@ Run this once after moving the app to `/Applications`, then open it normally.
 ```bash
 git clone https://github.com/MrGKanev/Editora.git
 cd Editora
-npm install
-npm start
+pnpm install
+pnpm start
 ```
 
 This launches the Electron app in development mode with hot reload.
+
+### Checks
+
+```bash
+pnpm lint       # ESLint
+pnpm typecheck  # tsc --noEmit
+pnpm test       # Vitest
+```
 
 ### Build for Production
 
 ```bash
 # Package the app (without installers)
-npm run package
+pnpm package
 
 # Create platform-specific installers
-npm run make
+pnpm make
 ```
 
 Installers are output to the `out/make/` directory.
+
+> **Note on Node versions:** dev, tests and the Vite build run on any Node 22.12+.
+> Packaging (`pnpm package` / `pnpm make`) currently exits silently on Node 26 —
+> `@electron/packager` dies while unpacking the Electron archive. Use Node 22 or 24
+> to build releases; CI does.
+
+> **Note on pnpm:** Electron Forge requires a flat `node_modules`, so this repo sets
+> `nodeLinker: hoisted` in `pnpm-workspace.yaml`. pnpm 11 reads its settings from
+> that file, not from `.npmrc`.
 
 ## Usage
 

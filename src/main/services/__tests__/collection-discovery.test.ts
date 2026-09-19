@@ -139,6 +139,45 @@ describe("CollectionDiscovery", () => {
       expect(names).toContain("articles");
     });
 
+    it("marks a field required when every file in the collection has it", async () => {
+      await writeMarkdown("content/blog/a.md", { title: "A", draft: false });
+      await writeMarkdown("content/blog/b.md", { title: "B", draft: true });
+      await writeMarkdown("content/blog/c.md", { title: "C", draft: false });
+
+      const collections = await discovery.discoverCollections(tmpDir);
+      const blog = collections.find((c) => c.name === "blog");
+      const title = blog!.schema!.fields.find((f) => f.name === "title");
+      const draft = blog!.schema!.fields.find((f) => f.name === "draft");
+
+      expect(title!.required).toBe(true);
+      expect(draft!.required).toBe(true);
+    });
+
+    it("marks a field optional when only some files have it", async () => {
+      await writeMarkdown("content/blog/a.md", { title: "A", subtitle: "only here" });
+      await writeMarkdown("content/blog/b.md", { title: "B" });
+      await writeMarkdown("content/blog/c.md", { title: "C" });
+
+      const collections = await discovery.discoverCollections(tmpDir);
+      const blog = collections.find((c) => c.name === "blog");
+      const fields = blog!.schema!.fields;
+
+      expect(fields.find((f) => f.name === "title")!.required).toBe(true);
+      expect(fields.find((f) => f.name === "subtitle")!.required).toBe(false);
+    });
+
+    it("degrades a field to string when its type is inconsistent", async () => {
+      await writeMarkdown("content/blog/a.md", { title: "A", weight: 1 });
+      await writeMarkdown("content/blog/b.md", { title: "B", weight: "heavy" });
+
+      const collections = await discovery.discoverCollections(tmpDir);
+      const blog = collections.find((c) => c.name === "blog");
+      const weight = blog!.schema!.fields.find((f) => f.name === "weight");
+
+      expect(weight!.type).toBe("string");
+      expect(weight!.required).toBe(true);
+    });
+
     it("populates files array with parsed frontmatter", async () => {
       await writeMarkdown("content/blog/post.md", { title: "Test" }, "Body content");
       const collections = await discovery.discoverCollections(tmpDir);

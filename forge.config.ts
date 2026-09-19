@@ -10,6 +10,31 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses";
 import fs from "node:fs";
 import path from "node:path";
 
+// Primary language subtags to keep locale files for. Everything else is
+// stripped from the packaged Electron binary at build time (see afterExtract
+// below): the app's own UI is English-only regardless, and Chromium falls
+// back to en-US for any missing locale, so this only affects the language of
+// native bits (Cut/Copy/Paste in context menus, the print dialog, etc).
+// Add a subtag here if you want another language kept.
+const KEEP_LOCALE_LANGS = new Set(["en", "bg"]);
+
+function localeLang(fileName: string): string {
+  return fileName
+    .replace(/\.(lproj|pak)$/i, "")
+    .replace(/_/g, "-")
+    .split("-")[0]
+    .toLowerCase();
+}
+
+function stripLocales(dir: string, extension: string) {
+  if (!fs.existsSync(dir)) return;
+  for (const entry of fs.readdirSync(dir)) {
+    if (!entry.toLowerCase().endsWith(extension)) continue;
+    if (KEEP_LOCALE_LANGS.has(localeLang(entry))) continue;
+    fs.rmSync(path.join(dir, entry), { recursive: true, force: true });
+  }
+}
+
 const config: ForgeConfig = {
   packagerConfig: {
     name: "Editora",
@@ -19,18 +44,38 @@ const config: ForgeConfig = {
     },
     icon: "./assets/icons/icon",
     prune: true,
-    ignore: [
-      /^\/src\//,
-      /^\/node_modules\/.cache/,
-      /^\/\.vscode/,
-      /^\/\.git/,
-      /^\/coverage/,
-      /^\/\.vitest/,
-      /\.map$/,
-      /\.test\.(ts|tsx|js)$/,
-      /\/__tests__\//,
-      /^\/node_modules\/.*\/(test|tests|__tests__|docs|examples|\.github)\//,
-      /^\/node_modules\/.*\/(README|CHANGELOG|LICENSE|\.npmignore)(\.md)?$/i,
+    // No `ignore` here on purpose. Setting one overrides the Vite plugin's
+    // automatic filter, which ships only the built `.vite` output — the hand
+    // written list above it used to let the entire dev dependency tree
+    // (eslint, vitest, rolldown, forge itself) into app.asar.
+    // The native modules the main bundle still needs at runtime are copied
+    // back in by the afterPrune hook below.
+    // Runs once per platform/arch on the freshly-extracted Electron binary,
+    // before it's renamed/signed — the earliest safe place to delete files.
+    afterExtract: [
+      (buildPath, _electronVersion, platform, _arch, callback) => {
+        try {
+          if (platform === "darwin") {
+            const appDir = fs.readdirSync(buildPath).find((f) => f.endsWith(".app"));
+            if (appDir) {
+              stripLocales(
+                path.join(
+                  buildPath, appDir, "Contents", "Frameworks",
+                  "Electron Framework.framework", "Versions", "A", "Resources"
+                ),
+                ".lproj"
+              );
+            }
+          } else {
+            // Windows and Linux builds keep locale .pak files in a flat
+            // "locales" folder at the root of the extracted binary.
+            stripLocales(path.join(buildPath, "locales"), ".pak");
+          }
+          callback();
+        } catch (err) {
+          callback(err as Error);
+        }
+      },
     ],
     afterPrune: [
       (buildPath, _electronVersion, _platform, _arch, callback) => {
@@ -71,19 +116,19 @@ const config: ForgeConfig = {
       build: [
         {
           entry: "src/main/index.ts",
-          config: "vite.main.config.ts",
+          config: "vite.main.config.mts",
           target: "main",
         },
         {
           entry: "src/preload/index.ts",
-          config: "vite.preload.config.ts",
+          config: "vite.preload.config.mts",
           target: "preload",
         },
       ],
       renderer: [
         {
           name: "main_window",
-          config: "vite.renderer.config.ts",
+          config: "vite.renderer.config.mts",
         },
       ],
     }),

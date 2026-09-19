@@ -43,26 +43,6 @@ export class MediaService {
     return files.sort((a, b) => b.lastModified - a.lastModified);
   }
 
-  async uploadFiles(
-    projectPath: string,
-    filePaths: string[]
-  ): Promise<{ uploaded: string[] }> {
-    const targetDir = path.join(projectPath, "public", "images");
-
-    // Ensure target directory exists
-    await fs.mkdir(targetDir, { recursive: true });
-
-    const uploaded: string[] = [];
-    for (const filePath of filePaths) {
-      const fileName = path.basename(filePath);
-      const destPath = path.join(targetDir, fileName);
-      await fs.copyFile(filePath, destPath);
-      uploaded.push(destPath);
-    }
-
-    return { uploaded };
-  }
-
   private async scanMediaDir(
     baseDir: string,
     dir: string,

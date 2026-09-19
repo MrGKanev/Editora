@@ -18,17 +18,6 @@ export function registerMediaHandlers() {
     }
   );
 
-  ipcMain.handle(
-    IPC.MEDIA_UPLOAD,
-    async (_event, projectPath: string, filePaths: string[]) => {
-      try {
-        return await mediaService.uploadFiles(projectPath, filePaths);
-      } catch (err) {
-        return { error: `Failed to upload: ${(err as Error).message}` };
-      }
-    }
-  );
-
   ipcMain.handle(IPC.MEDIA_DELETE, async (_event, filePath: string) => {
     try {
       await fs.unlink(filePath);
@@ -36,10 +25,6 @@ export function registerMediaHandlers() {
     } catch (err) {
       return { error: `Failed to delete: ${(err as Error).message}` };
     }
-  });
-
-  ipcMain.handle(IPC.MEDIA_GET_PATH, async (_event, filePath: string) => {
-    return `file://${filePath}`;
   });
 
   ipcMain.handle(

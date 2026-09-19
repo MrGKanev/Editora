@@ -2,6 +2,9 @@ import React, { useCallback, useMemo, useRef, useState } from "react";
 import CodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { html } from "@codemirror/lang-html";
+// lang-html pulls lang-javascript in statically, so importing it lazily here
+// would not split it out anyway.
+import { javascript } from "@codemirror/lang-javascript";
 import { LanguageDescription, HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorView } from "@codemirror/view";
 import { tags } from "@lezer/highlight";
@@ -21,12 +24,12 @@ import { builtinSnippets } from "../../utils/snippets";
 
 // Curated languages for static site CMS (lazy-loaded on demand)
 const cmsLanguages = [
-  LanguageDescription.of({ name: "JavaScript", alias: ["js"], extensions: ["js", "mjs", "cjs"], load: () => import("@codemirror/lang-javascript").then(m => m.javascript()) }),
-  LanguageDescription.of({ name: "TypeScript", alias: ["ts"], extensions: ["ts", "mts"], load: () => import("@codemirror/lang-javascript").then(m => m.javascript({ typescript: true })) }),
-  LanguageDescription.of({ name: "JSX", alias: ["jsx"], extensions: ["jsx"], load: () => import("@codemirror/lang-javascript").then(m => m.javascript({ jsx: true })) }),
-  LanguageDescription.of({ name: "TSX", alias: ["tsx"], extensions: ["tsx"], load: () => import("@codemirror/lang-javascript").then(m => m.javascript({ jsx: true, typescript: true })) }),
+  LanguageDescription.of({ name: "JavaScript", alias: ["js"], extensions: ["js", "mjs", "cjs"], load: async () => javascript() }),
+  LanguageDescription.of({ name: "TypeScript", alias: ["ts"], extensions: ["ts", "mts"], load: async () => javascript({ typescript: true }) }),
+  LanguageDescription.of({ name: "JSX", alias: ["jsx"], extensions: ["jsx"], load: async () => javascript({ jsx: true }) }),
+  LanguageDescription.of({ name: "TSX", alias: ["tsx"], extensions: ["tsx"], load: async () => javascript({ jsx: true, typescript: true }) }),
   LanguageDescription.of({ name: "CSS", extensions: ["css"], load: () => import("@codemirror/lang-css").then(m => m.css()) }),
-  LanguageDescription.of({ name: "HTML", extensions: ["html", "htm"], load: () => import("@codemirror/lang-html").then(m => m.html()) }),
+  LanguageDescription.of({ name: "HTML", extensions: ["html", "htm"], load: async () => html() }),
   LanguageDescription.of({ name: "JSON", extensions: ["json"], load: () => import("@codemirror/lang-json").then(m => m.json()) }),
   LanguageDescription.of({ name: "YAML", alias: ["yml"], extensions: ["yaml", "yml"], load: () => import("@codemirror/lang-yaml").then(m => m.yaml()) }),
   LanguageDescription.of({ name: "Python", alias: ["py"], extensions: ["py"], load: () => import("@codemirror/lang-python").then(m => m.python()) }),
@@ -355,6 +358,45 @@ function FloatingToolbar({
   );
 }
 
+interface TableRange {
+  markdown: string;
+  from: number;
+  to: number;
+}
+
+// Walks outward from the cursor to find the markdown table it sits in, if any.
+function findTableAtCursor(view: EditorView): TableRange | null {
+  const doc = view.state.doc;
+  const lineNum = doc.lineAt(view.state.selection.main.head).number;
+
+  const isTableLine = (n: number) => {
+    if (n < 1 || n > doc.lines) return false;
+    const text = doc.line(n).text.trim();
+    return text.startsWith("|") && text.endsWith("|");
+  };
+
+  if (!isTableLine(lineNum)) return null;
+
+  let startLine = lineNum;
+  let endLine = lineNum;
+  while (startLine > 1 && isTableLine(startLine - 1)) startLine--;
+  while (endLine < doc.lines && isTableLine(endLine + 1)) endLine++;
+
+  const lines: string[] = [];
+  for (let i = startLine; i <= endLine; i++) {
+    lines.push(doc.line(i).text);
+  }
+
+  const tableMarkdown = lines.join("\n");
+  if (!parseMarkdownTable(tableMarkdown)) return null;
+
+  return {
+    markdown: tableMarkdown,
+    from: doc.line(startLine).from,
+    to: doc.line(endLine).to,
+  };
+}
+
 const IMAGE_EXTENSIONS = new Set(["png", "jpg", "jpeg", "gif", "svg", "webp", "avif", "ico"]);
 
 export default function MarkdownEditor() {
@@ -369,49 +411,16 @@ export default function MarkdownEditor() {
   const [tableEditRange, setTableEditRange] = useState<{ from: number; to: number } | null>(null);
   const [dropUploadPaths, setDropUploadPaths] = useState<string[]>([]);
   const [showDropUpload, setShowDropUpload] = useState(false);
+  const [tableAtCursor, setTableAtCursor] = useState(false);
 
   // Detect if cursor is inside a markdown table
   const detectTableAtCursor = useCallback(() => {
     const view = cmRef.current?.view;
-    if (!view) return null;
-
-    const pos = view.state.selection.main.head;
-    const doc = view.state.doc;
-    const lineNum = doc.lineAt(pos).number;
-
-    // Walk up and down from cursor to find table boundaries
-    let startLine = lineNum;
-    let endLine = lineNum;
-
-    // Check if current line looks like a table line
-    const isTableLine = (n: number) => {
-      if (n < 1 || n > doc.lines) return false;
-      const text = doc.line(n).text.trim();
-      return text.startsWith("|") && text.endsWith("|");
-    };
-
-    if (!isTableLine(lineNum)) return null;
-
-    while (startLine > 1 && isTableLine(startLine - 1)) startLine--;
-    while (endLine < doc.lines && isTableLine(endLine + 1)) endLine++;
-
-    const lines: string[] = [];
-    for (let i = startLine; i <= endLine; i++) {
-      lines.push(doc.line(i).text);
-    }
-
-    const tableMarkdown = lines.join("\n");
-    if (!parseMarkdownTable(tableMarkdown)) return null;
-
-    return {
-      markdown: tableMarkdown,
-      from: doc.line(startLine).from,
-      to: doc.line(endLine).to,
-    };
+    return view ? findTableAtCursor(view) : null;
   }, []);
 
   const openTableEditor = useCallback(
-    (existingTable?: { markdown: string; from: number; to: number }) => {
+    (existingTable?: TableRange) => {
       if (existingTable) {
         setTableEditMarkdown(existingTable.markdown);
         setTableEditRange({ from: existingTable.from, to: existingTable.to });
@@ -461,6 +470,8 @@ export default function MarkdownEditor() {
 
         const view = update.view;
         const { from, to } = view.state.selection.main;
+
+        setTableAtCursor(findTableAtCursor(view) !== null);
 
         if (from === to) {
           setToolbarPos(null);
@@ -546,7 +557,7 @@ export default function MarkdownEditor() {
       if (files.length === 0) return;
 
       const filePaths = files
-        .map((f) => (f as File & { path: string }).path)
+        .map((f) => window.editora.getPathForFile(f))
         .filter(Boolean);
       if (filePaths.length === 0) return;
 
@@ -643,7 +654,7 @@ export default function MarkdownEditor() {
             const table = detectTableAtCursor();
             openTableEditor(table || undefined);
           }}
-          title={detectTableAtCursor() ? "Edit table at cursor" : "Insert table"}
+          title={tableAtCursor ? "Edit table at cursor" : "Insert table"}
           className="px-2.5 py-1.5 text-xs bg-editor-surface border rounded-lg shadow
                      text-editor-muted hover:text-editor-text hover:bg-editor-border/50
                      transition-colors"

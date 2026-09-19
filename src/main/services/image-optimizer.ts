@@ -20,6 +20,15 @@ export interface OptimizeResult {
 
 const OPTIMIZABLE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".avif", ".tiff"]);
 
+async function exists(p: string): Promise<boolean> {
+  try {
+    await fs.access(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export class ImageOptimizer {
   async getImageInfo(filePath: string): Promise<{
     width: number;
@@ -46,13 +55,13 @@ export class ImageOptimizer {
     destDir: string,
     options: OptimizeOptions
   ): Promise<OptimizeResult> {
-    const stat = await fs.stat(filePath);
+    // One decode handle for both the metadata read and the transform
+    const image = sharp(filePath);
+    const [stat, meta] = await Promise.all([fs.stat(filePath), image.metadata()]);
     const originalSize = stat.size;
-    const meta = await sharp(filePath).metadata();
     const originalWidth = meta.width || 0;
-    const originalHeight = meta.height || 0;
 
-    let pipeline = sharp(filePath);
+    let pipeline = image;
 
     // Resize if wider than maxWidth
     if (originalWidth > options.maxWidth) {
@@ -93,33 +102,30 @@ export class ImageOptimizer {
       }
     }
 
+    // Create the directory before probing it for name collisions
+    await fs.mkdir(destDir, { recursive: true });
+
     outputPath = path.join(destDir, baseName + outputExt);
 
     // Avoid overwriting — add suffix if needed
     let counter = 1;
-    while (true) {
-      try {
-        await fs.access(outputPath);
-        outputPath = path.join(destDir, `${baseName}-${counter}${outputExt}`);
-        counter++;
-      } catch {
-        break;
-      }
+    while (await exists(outputPath)) {
+      outputPath = path.join(destDir, `${baseName}-${counter}${outputExt}`);
+      counter++;
     }
 
-    await fs.mkdir(destDir, { recursive: true });
-    const outputBuffer = await pipeline.toBuffer();
-    await fs.writeFile(outputPath, outputBuffer);
-
-    const outputMeta = await sharp(outputPath).metadata();
+    // resolveWithObject gives us the output dimensions from the encode we just
+    // ran, instead of re-reading and re-decoding the file we wrote.
+    const { data, info } = await pipeline.toBuffer({ resolveWithObject: true });
+    await fs.writeFile(outputPath, data);
 
     return {
       originalPath: filePath,
       outputPath,
       originalSize,
-      outputSize: outputBuffer.length,
-      width: outputMeta.width || 0,
-      height: outputMeta.height || 0,
+      outputSize: info.size,
+      width: info.width,
+      height: info.height,
       format: outputExt.slice(1),
     };
   }

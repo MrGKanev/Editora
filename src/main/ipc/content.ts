@@ -41,7 +41,9 @@ export function registerContentHandlers() {
           lastModified: stat.mtimeMs,
         };
       } catch (err) {
-        throw new Error(`Failed to read file: ${(err as Error).message}`);
+        throw new Error(`Failed to read file: ${(err as Error).message}`, {
+          cause: err,
+        });
       }
     }
   );

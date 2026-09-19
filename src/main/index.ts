@@ -1,5 +1,6 @@
 import { app, BrowserWindow, Menu, protocol, net, shell, ipcMain } from "electron";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { IPC } from "../shared/types";
 import { registerProjectHandlers } from "./ipc/project";
 import { registerContentHandlers } from "./ipc/content";
@@ -9,9 +10,10 @@ import { registerServerHandlers } from "./ipc/server";
 import { registerLinkHandlers } from "./ipc/links";
 import { registerExportHandlers } from "./ipc/export";
 import { createAppMenu } from "./menu";
+import squirrelStartup from "electron-squirrel-startup";
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (require("electron-squirrel-startup")) {
+if (squirrelStartup) {
   app.quit();
 }
 
@@ -131,7 +133,7 @@ app.whenReady().then(() => {
   // Handle local-file:// protocol for serving media images
   protocol.handle("local-file", (request) => {
     const filePath = decodeURIComponent(request.url.replace("local-file://", ""));
-    return net.fetch(`file://${filePath}`);
+    return net.fetch(pathToFileURL(filePath).toString());
   });
 
   registerAllHandlers();
@@ -154,5 +156,3 @@ app.on("activate", () => {
 // Vite HMR declarations
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
-
-export { mainWindow };

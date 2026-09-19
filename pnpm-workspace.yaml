@@ -1,9 +1,36 @@
+# pnpm >= 11 reads its settings from here, not from .npmrc.
+#
+# Electron packaging needs a flat node_modules: electron-forge's prune step and
+# forge.config.ts's afterPrune hook copy native modules (sharp, @img/*) out of
+# the project root, which only works when they are hoisted there.
+nodeLinker: hoisted
+
+# Native/postinstall scripts we trust to run.
 allowBuilds:
   electron-winstaller: true
   esbuild: true
   fs-xattr: true
   macos-alias: true
   sharp: true
+
+# @electron/rebuild depends on @electron/node-gyp from a git repository, which
+# pnpm blocks by default.
 blockExoticSubdeps: false
-minimumReleaseAgeExclude:
-  - dompurify@3.4.6
+
+# CodeMirror and Lezer must each resolve to a single copy: two copies of
+# @codemirror/state or @lezer/common in the tree break instanceof checks at
+# runtime (and produce unassignable duplicate types at build time).
+overrides:
+  "@codemirror/state": "$@codemirror/state"
+  "@codemirror/view": "$@codemirror/view"
+  "@codemirror/language": "$@codemirror/language"
+  "@codemirror/autocomplete": "$@codemirror/autocomplete"
+  "@codemirror/search": "$@codemirror/search"
+  "@lezer/highlight": "$@lezer/highlight"
+  # Also pinned so the language stack is not bundled twice: lang-markdown
+  # otherwise resolved its own older copy of lang-html (and with it the whole
+  # HTML/JS/CSS grammar chain).
+  "@codemirror/lang-html": "$@codemirror/lang-html"
+  "@codemirror/lang-javascript": "$@codemirror/lang-javascript"
+  "@codemirror/lang-css": "$@codemirror/lang-css"
+  "@codemirror/lang-markdown": "$@codemirror/lang-markdown"

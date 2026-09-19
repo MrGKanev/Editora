@@ -71,62 +71,77 @@ export class CollectionDiscovery {
   }
 
   async getCollectionFiles(collectionPath: string): Promise<ContentFile[]> {
-    const files: ContentFile[] = [];
-
-    const scanDir = async (dir: string) => {
-      const entries = await fs.readdir(dir, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = path.join(dir, entry.name);
-
-        if (entry.isDirectory()) {
-          await scanDir(fullPath);
-        } else if (CONTENT_EXTENSIONS.includes(path.extname(entry.name))) {
-          try {
-            const raw = await fs.readFile(fullPath, "utf-8");
-            const { data, content } = matter(raw);
-            const stat = await fs.stat(fullPath);
-
-            files.push({
-              name: entry.name,
-              path: fullPath,
-              relativePath: path.relative(collectionPath, fullPath),
-              frontmatter: data,
-              body: content,
-              lastModified: stat.mtimeMs,
-            });
-          } catch {
-            // Skip unreadable files
-          }
-        }
+    const readFile = async (fullPath: string): Promise<ContentFile | null> => {
+      try {
+        const [raw, stat] = await Promise.all([
+          fs.readFile(fullPath, "utf-8"),
+          fs.stat(fullPath),
+        ]);
+        const { data, content } = matter(raw);
+        return {
+          name: path.basename(fullPath),
+          path: fullPath,
+          relativePath: path.relative(collectionPath, fullPath),
+          frontmatter: data,
+          body: content,
+          lastModified: stat.mtimeMs,
+        };
+      } catch {
+        // Skip unreadable files
+        return null;
       }
     };
 
-    await scanDir(collectionPath);
+    const scanDir = async (dir: string): Promise<ContentFile[]> => {
+      let entries;
+      try {
+        entries = await fs.readdir(dir, { withFileTypes: true });
+      } catch {
+        return [];
+      }
+
+      const jobs = entries.map((entry) => {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) return scanDir(fullPath);
+        if (CONTENT_EXTENSIONS.includes(path.extname(entry.name))) {
+          return readFile(fullPath).then((f) => (f ? [f] : []));
+        }
+        return Promise.resolve([]);
+      });
+
+      return (await Promise.all(jobs)).flat();
+    };
+
+    const files = await scanDir(collectionPath);
     return files.sort((a, b) => b.lastModified - a.lastModified);
   }
 
   private inferSchema(files: ContentFile[]): { fields: SchemaField[] } {
-    const fieldMap = new Map<string, Set<string>>();
+    const types = new Map<string, Set<string>>();
+    const occurrences = new Map<string, number>();
 
-    // Collect all field names and value types from all files
+    // Collect field names, the value types seen, and how many files use each
     for (const file of files) {
       for (const [key, value] of Object.entries(file.frontmatter)) {
-        if (!fieldMap.has(key)) {
-          fieldMap.set(key, new Set());
+        let seenTypes = types.get(key);
+        if (!seenTypes) {
+          seenTypes = new Set();
+          types.set(key, seenTypes);
         }
-        fieldMap.get(key)!.add(this.detectFieldType(value));
+        seenTypes.add(this.detectFieldType(value));
+        occurrences.set(key, (occurrences.get(key) ?? 0) + 1);
       }
     }
 
     const fields: SchemaField[] = [];
-    for (const [name, types] of fieldMap) {
-      const typeArr = Array.from(types);
-      const type = typeArr.length === 1 ? typeArr[0] : "string";
+    for (const [name, seenTypes] of types) {
+      // A field with inconsistent types across files degrades to "string"
+      const type = seenTypes.size === 1 ? [...seenTypes][0] : "string";
       fields.push({
         name,
         type: type as SchemaField["type"],
-        required: fieldMap.get(name)!.size === files.length,
+        // Present in every file in the collection
+        required: occurrences.get(name) === files.length,
       });
     }
 

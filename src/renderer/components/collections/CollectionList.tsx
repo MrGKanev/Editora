@@ -142,7 +142,6 @@ function NewFileForm({
 function FileContextMenu({
   x,
   y,
-  file,
   onClose,
   onRename,
   onDuplicate,
@@ -150,7 +149,6 @@ function FileContextMenu({
 }: {
   x: number;
   y: number;
-  file: ContentFile;
   onClose: () => void;
   onRename: () => void;
   onDuplicate: () => void;
@@ -395,7 +393,6 @@ function CollectionItem({
         <FileContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
-          file={contextMenu.file}
           onClose={() => setContextMenu(null)}
           onRename={() => setRenamingPath(contextMenu.file.path)}
           onDuplicate={() => handleDuplicate(contextMenu.file)}

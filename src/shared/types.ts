@@ -84,6 +84,7 @@ export interface DevServerState {
 export const IPC = {
   // Project
   PROJECT_OPEN: "project:open",
+  PROJECT_OPEN_PATH: "project:open-path",
   PROJECT_CLONE: "project:clone",
   PROJECT_GET_RECENT: "project:get-recent",
   PROJECT_VALIDATE: "project:validate",
@@ -102,9 +103,7 @@ export const IPC = {
 
   // Media
   MEDIA_LIST: "media:list",
-  MEDIA_UPLOAD: "media:upload",
   MEDIA_DELETE: "media:delete",
-  MEDIA_GET_PATH: "media:get-path",
   MEDIA_IMAGE_INFO: "media:image-info",
   MEDIA_OPTIMIZE_UPLOAD: "media:optimize-upload",
 

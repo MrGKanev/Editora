@@ -38,7 +38,7 @@ export default function MediaGallery() {
     input.multiple = true;
     input.onchange = () => {
       if (!input.files) return;
-      const paths = Array.from(input.files).map((f) => (f as File & { path: string }).path);
+      const paths = Array.from(input.files).map((f) => window.editora.getPathForFile(f));
       setUploadPaths(paths);
       setShowUploadDialog(true);
     };

@@ -4,6 +4,7 @@ import { IPC } from "../types";
 describe("IPC Channels", () => {
   it("should define all project channels", () => {
     expect(IPC.PROJECT_OPEN).toBe("project:open");
+    expect(IPC.PROJECT_OPEN_PATH).toBe("project:open-path");
     expect(IPC.PROJECT_CLONE).toBe("project:clone");
     expect(IPC.PROJECT_GET_RECENT).toBe("project:get-recent");
     expect(IPC.PROJECT_VALIDATE).toBe("project:validate");
@@ -23,9 +24,9 @@ describe("IPC Channels", () => {
 
   it("should define all media channels", () => {
     expect(IPC.MEDIA_LIST).toBe("media:list");
-    expect(IPC.MEDIA_UPLOAD).toBe("media:upload");
     expect(IPC.MEDIA_DELETE).toBe("media:delete");
-    expect(IPC.MEDIA_GET_PATH).toBe("media:get-path");
+    expect(IPC.MEDIA_IMAGE_INFO).toBe("media:image-info");
+    expect(IPC.MEDIA_OPTIMIZE_UPLOAD).toBe("media:optimize-upload");
   });
 
   it("should define all git channels", () => {
